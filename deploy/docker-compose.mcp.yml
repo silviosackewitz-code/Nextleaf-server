@@ -1,0 +1,13 @@
+# Optional overlay for source builds containing the OAuth/MCP-only listener.
+# Keep the base web port (8787) private. Funnel must target ONLY port 8788.
+services:
+  nextleaf:
+    ports:
+      - "127.0.0.1:8788:8788"
+    environment:
+      NEXTLEAF_MCP_BIND: "0.0.0.0:8788"
+      NEXTLEAF_MCP_TOKEN: ""
+      NEXTLEAF_MCP_HOSTS: "${NEXTLEAF_MCP_HOSTS:?Set the exact Tailscale hostname}"
+      NEXTLEAF_OAUTH_ISSUER: "${NEXTLEAF_OAUTH_ISSUER:?Set the public HTTPS origin including the dedicated HTTPS port}"
+      NEXTLEAF_OAUTH_PASSWORD_HASH: "${NEXTLEAF_OAUTH_PASSWORD_HASH:?Generate the owner password hash with oauth_password.py}"
+      NEXTLEAF_OAUTH_REDIRECT_URIS: "${NEXTLEAF_OAUTH_REDIRECT_URIS:-https://chatgpt.com/connector_platform_oauth_redirect,https://claude.ai/api/mcp/auth_callback}"

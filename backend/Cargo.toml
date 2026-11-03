@@ -1,0 +1,31 @@
+[package]
+name = "nextleaf-server"
+version = "0.1.5"
+license = "GPL-3.0-only"
+repository = "https://github.com/silviosackewitz-code/Nextleaf-server"
+edition = "2021"
+default-run = "nextleaf-server"
+
+[dependencies]
+axum = { version = "0.8", features = ["json", "query"] }
+chrono = { version = "0.4", features = ["serde"] }
+chrono-tz = "0.10"
+dotenvy = "0.15"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio", "migrate", "macros"] }
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.6", features = ["fs", "trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1", features = ["v4", "v5", "serde"] }
+
+rmcp = { version = "3.5.1", default-features = false, features = ["server", "macros", "transport-streamable-http-server", "transport-io"] }
+subtle = "2.6"
+base64 = "0.22"
+scrypt = { version = "0.11", default-features = false }
+sha2 = "0.10"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }

@@ -1,0 +1,77 @@
+@font-face{font-family:'IBM Plex Sans';src:url('/fonts/IBMPlexSans-Regular.ttf') format('truetype');font-weight:400;font-display:swap}
+@font-face{font-family:'IBM Plex Sans';src:url('/fonts/IBMPlexSans-SemiBold.ttf') format('truetype');font-weight:600 900;font-display:swap}
+@font-face{font-family:'IBM Plex Mono';src:url('/fonts/IBMPlexMono-Regular.ttf') format('truetype');font-weight:400;font-display:swap}
+@font-face{font-family:'JetBrains Mono';src:url('/fonts/JetBrainsMono-Regular.ttf') format('truetype');font-weight:400;font-display:swap}
+@font-face{font-family:'JetBrains Mono';src:url('/fonts/JetBrainsMono-SemiBold.ttf') format('truetype');font-weight:600 900;font-display:swap}
+
+/* Shared surface and text roles cover desktop, web, dialogs and popovers. */
+:root,[data-theme='dark']{
+  color-scheme:dark;
+  --bg:#0f1319;--panel:#161b23;--field:#1c232d;--hover:#242e3b;
+  --ink:#e6eaf1;--muted:#9aa6b8;--line:#455163;--line-soft:#2a323e;
+  --accent:#ff7777;--accent-fill:#c90019;--on-accent:#ffffff;--accent-soft:#3b202a;
+  --danger:#ff8585;--danger-bg:#3b202a;--badge:#b92337;--focus:#f1c75b;
+  --radius:5px;--radius-lg:8px;
+  --shadow:#00000040;--scrim:#00000099;
+  --font-ui:'IBM Plex Sans',sans-serif;--font-mono:'IBM Plex Mono',monospace;
+}
+[data-theme='industrial']{
+  color-scheme:dark;
+  --bg:#16181b;--panel:#202327;--field:#272b30;--hover:#343a42;
+  --ink:#eceef0;--muted:#aab1b9;--line:#626b77;--line-soft:#3b424b;
+  --accent:#ff8c1a;--accent-fill:#ff8c1a;--on-accent:#111214;--accent-soft:#3e2d20;
+  --danger:#ff8b8b;--danger-bg:#402729;--badge:#b92337;--focus:#f1c75b;
+  --radius:0px;--radius-lg:0px;
+}
+[data-theme='terminal']{
+  color-scheme:dark;
+  --bg:#1a1b26;--panel:#1f2335;--field:#252a40;--hover:#303953;
+  --ink:#c0caf5;--muted:#a9b1d6;--line:#606c98;--line-soft:#3b4261;
+  --accent:#7aa2f7;--accent-fill:#7aa2f7;--on-accent:#1a1b26;--accent-soft:#293754;
+  --danger:#ff93af;--danger-bg:#3d273e;--badge:#b92337;--focus:#e0c478;
+  --radius:0px;--radius-lg:0px;
+}
+[data-theme='cappuccino']{
+  color-scheme:light;
+  --bg:#f4eee5;--panel:#fffaf3;--field:#eee5d9;--hover:#e5d7c7;
+  --ink:#382b24;--muted:#6b5a4d;--line:#9c8876;--line-soft:#d8c9b9;
+  --accent:#81502f;--accent-fill:#81502f;--on-accent:#fffaf3;--accent-soft:#ecddcc;
+  --danger:#a82d36;--danger-bg:#f7e1db;--badge:#ad2935;--focus:#e2b521;
+  --radius:7px;--radius-lg:10px;
+}
+:root[data-font='jetbrains']{--font-ui:'JetBrains Mono',monospace;--font-mono:'JetBrains Mono',monospace}
+:root{font-family:var(--font-ui);accent-color:var(--accent-fill)}
+input,textarea,select{color:var(--ink);background-color:var(--field)}
+input::placeholder,textarea::placeholder{color:var(--muted);opacity:1}
+code,pre,.count,.navcounts{font-family:var(--font-mono)}
+.sidebar{border-right:1px solid var(--line-soft)}
+.brand{letter-spacing:-.6px}
+.brandmark{color:var(--accent)}
+.navitem.active{box-shadow:inset 2px 0 var(--accent)}
+.topbar{padding-bottom:18px;border-bottom:1px solid var(--line-soft)}
+.navlabel,.listhead,.taskgroupheading{font-family:var(--font-mono)}
+.settingspanel{border:1px solid var(--line-soft)}
+.settingspanel .appearance{padding:0 0 22px;margin-bottom:22px;border-bottom:1px solid var(--line-soft)}
+.settingspanel .appearance h3{margin:22px 0 12px}
+.themechoices{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.settingspanel .themechoice{min-width:0;padding:8px;text-align:left;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:var(--radius-lg)}
+.settingspanel .themechoice[aria-pressed='true']{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.themechoice strong{display:flex;justify-content:space-between;gap:4px;margin:10px 0 4px;font-size:13px;font-weight:600}
+.themechoice strong>span{color:var(--accent)}
+.themechoice small{display:block;color:var(--muted);font-size:11px;line-height:1.4}
+.themepreview{display:flex;height:72px;gap:10px;background:var(--bg);border:1px solid var(--line-soft);border-radius:var(--radius);overflow:hidden;padding-right:10px}
+.themepreview>i{display:block;width:24%;background:var(--panel);border-right:1px solid var(--line-soft)}
+.themepreview>span{flex:1;padding-top:12px}
+.themepreview b{display:block;background:var(--accent);width:38%;height:5px;margin-bottom:12px}
+.themepreview span i{display:block;background:var(--muted);height:2px;margin-bottom:7px;opacity:.65}
+.themepreview span i:last-child{width:70%}
+.fontchoice{display:flex;align-items:center;gap:16px;margin-top:20px;font-weight:600}
+.fontchoice select{font-weight:400;max-width:100%;padding:8px 12px;border:1px solid var(--line);border-radius:var(--radius)}
+.fontsample{padding:14px 0;margin:0;font-size:15px}
+.fontsample span{font-family:var(--font-mono);display:inline-block;margin-left:8px;color:var(--muted)}
+.appearancehint{font-size:12px;color:var(--muted);margin:0}
+@media(max-width:900px){.themechoices{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:720px){.fontchoice{flex-wrap:wrap;gap:8px}.fontchoice select{min-height:44px;font-size:16px}.themechoice small{font-size:12px}.topbar{padding-bottom:12px}}
+
+.navbadge{color:#fff}
+.settingspanel input{border:1px solid var(--line);border-radius:var(--radius)}

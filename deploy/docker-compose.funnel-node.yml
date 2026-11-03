@@ -1,0 +1,31 @@
+# Combine with the release base and MCP overlay for every deployment/update.
+# This separate userspace node gives MCP its own HTTPS 443 without changing host Serve.
+services:
+  mcp-edge:
+    image: tailscale/tailscale:v1.104.1
+    restart: unless-stopped
+    network_mode: service:nextleaf
+    depends_on:
+      nextleaf:
+        condition: service_started
+        restart: true
+    entrypoint: ["tailscaled"]
+    command:
+      - --tun=userspace-networking
+      - --state=/var/lib/tailscale/tailscaled.state
+      - --socket=/tmp/tailscaled.sock
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+      - /run:size=16m,mode=0755
+    volumes:
+      - mcp-tailscale-state:/var/lib/tailscale
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+volumes:
+  mcp-tailscale-state:
