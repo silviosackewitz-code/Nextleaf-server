@@ -223,7 +223,7 @@ impl Context {
                 if if r.completed {
                     t.status != "completed"
                 } else {
-                    matches!(t.status.as_str(), "completed" | "trash" | "recurring")
+                    t.project_trashed || matches!(t.status.as_str(), "completed" | "trash" | "recurring")
                 } {
                     return false;
                 }

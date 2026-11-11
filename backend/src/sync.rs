@@ -16,7 +16,7 @@ impl Default for Snapshot {
             reviews: Records::new(),
             tags: Records::new(),
             cycles: BTreeMap::new(),
-            protocol: 6,
+            protocol: 7,
             clock: schedule::Clock::default(),
         }
     }
@@ -100,7 +100,7 @@ const REVIEW: &str = "id,data_json,revision,undo_json";
 const PERSPECTIVE: &str = "id,name,filters_json,sort_order,created_at,updated_at,deleted";
 const AREA: &str = "id,name,sort_order,created_at,updated_at,archived";
 const TAG: &str = "id,name,kind,archived";
-const PROJECT: &str = "id,area_id,name,notes,project_type,status,sort_order,created_at,updated_at,completed_at,due_date,starred";
+const PROJECT: &str = "id,area_id,name,notes,project_type,status,sort_order,created_at,updated_at,completed_at,due_date,starred,trashed";
 const TASK: &str = "id,project_id,area_id,title,notes,status,sort_order,due_date,defer_until,completed_at,created_at,updated_at,starred,waiting_for,estimated_minutes,energy,recurrence";
 
 async fn identity(conn: &mut SqliteConnection) -> Result<String, String> {
@@ -456,9 +456,9 @@ fn remap_tag(snapshot: &mut Snapshot, old: &str, new: &str) {
     }
 }
 fn validate(s: &Snapshot) -> Result<(), String> {
-    if s.protocol != 6 {
+    if s.protocol != 7 {
         return Err(
-            "Update both the server and desktop app to support Review sync (version 6)."
+            "Update both the server and every app to support projects in Trash (sync version 7)."
                 .into(),
         );
     }
@@ -518,7 +518,7 @@ fn validate(s: &Snapshot) -> Result<(), String> {
                             return Err("Invalid order".into());
                         }
                     }
-                    "starred" | "archived" | "deleted" => {
+                    "starred" | "archived" | "deleted" | "trashed" => {
                         if !matches!(value.as_i64(), Some(0 | 1)) {
                             return Err("Invalid Focus value".into());
                         }
@@ -852,6 +852,26 @@ async fn exchange_db(pool: &SqlitePool, request: Exchange) -> Result<Reply, Stri
     Ok(reply)
 }
 
+/// A sync address is an HTTPS origin; plain HTTP is for loopback development only.
+fn origin(remote: &str) -> Result<String, String> {
+    let url = reqwest::Url::parse(remote.trim()).map_err(|_| "Invalid server URL")?;
+    if !url.username().is_empty()
+        || url.password().is_some()
+        || url.query().is_some()
+        || url.fragment().is_some()
+        || url.path() != "/"
+    {
+        return Err("Use a server origin without credentials, path or query".into());
+    }
+    if url.scheme() != "https"
+        && !(url.scheme() == "http"
+            && matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "[::1]")))
+    {
+        return Err("Sync requires HTTPS, except for loopback development".into());
+    }
+    Ok(url.as_str().trim_end_matches('/').to_owned())
+}
+
 #[derive(Clone)]
 pub struct SyncEngine {
     pool: SqlitePool,
@@ -906,29 +926,77 @@ impl SyncEngine {
         }
         self.status().await
     }
+    /// Links this database to another server once the owner has confirmed it. Local
+    /// data stays and is merged with that server as on a first connection; the
+    /// baseline, retry state and open conflicts of the old link are dropped.
+    pub async fn switch_server(&self, remote: &str) -> Result<SyncStatus, String> {
+        if let Err(error) = self.switch_inner(remote).await {
+            let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await.map_err(err)?;
+            let mut state = load(&mut tx).await?;
+            state.error = Some(error.clone());
+            save(&mut tx, &state).await?;
+            tx.commit().await.map_err(err)?;
+            return Err(error);
+        }
+        self.status().await
+    }
+    async fn switch_inner(&self, remote: &str) -> Result<(), String> {
+        let remote = origin(remote)?;
+        // Reachability and protocol are settled before the old link is given up.
+        let envelope = self.identify(&remote).await?;
+        validate(&envelope.snapshot)?;
+        let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await.map_err(err)?;
+        let state = load(&mut tx).await?;
+        // The same server at another address keeps its baseline; sync_inner moves it.
+        if state.server_id.as_ref() != Some(&envelope.server_id) {
+            let fresh = ClientState {
+                remote_url: Some(remote.clone()),
+                server_id: Some(envelope.server_id),
+                ..ClientState::default()
+            };
+            save(&mut tx, &fresh).await?;
+        }
+        tx.commit().await.map_err(err)?;
+        self.sync_inner(&remote).await
+    }
+    /// Asks the server at a new address who it is, without sending any data.
+    async fn identify(&self, remote: &str) -> Result<Envelope, String> {
+        self.response(
+            self.http
+                .get(format!("{remote}/api/sync"))
+                .send()
+                .await
+                .map_err(|_| "The new server address is unreachable. The saved connection is unchanged.")?,
+        )
+        .await
+        .map_err(|e| format!("The new server address did not answer as a Nextleaf server. The saved connection is unchanged. ({e})"))
+    }
     async fn sync_inner(&self, remote: &str) -> Result<(), String> {
-        let url = reqwest::Url::parse(remote.trim()).map_err(|_| "Invalid server URL")?;
-        if !url.username().is_empty()
-            || url.password().is_some()
-            || url.query().is_some()
-            || url.fragment().is_some()
-            || url.path() != "/"
-        {
-            return Err("Use a server origin without credentials, path or query".into());
+        let remote = origin(remote)?;
+        // A linked database may follow its server to a new address, never to another
+        // server: the identity is checked at the new address before it is saved.
+        let moved = {
+            let mut tx = self.pool.begin().await.map_err(err)?;
+            let state = load(&mut tx).await?;
+            tx.commit().await.map_err(err)?;
+            match (state.server_id, state.remote_url) {
+                (Some(id), Some(saved)) if saved != remote => Some(id),
+                _ => None,
+            }
+        };
+        if let Some(linked) = &moved {
+            if &self.identify(&remote).await?.server_id != linked {
+                return Err("This address belongs to a different Nextleaf server. This device stays linked to its current server to protect local data.".into());
+            }
         }
-        if url.scheme() != "https"
-            && !(url.scheme() == "http"
-                && matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "[::1]")))
-        {
-            return Err("Sync requires HTTPS, except for loopback development".into());
-        }
-        let remote = url.as_str().trim_end_matches('/').to_owned();
         {
             let mut tx = self.pool.begin_with("BEGIN IMMEDIATE").await.map_err(err)?;
             let mut state = load(&mut tx).await?;
-            if state.server_id.is_some() && state.remote_url.as_ref().is_some_and(|v| v != &remote)
-            {
-                return Err("This database is linked to a different server URL. Keep that connection to protect local data.".into());
+            let differs = state.remote_url.as_ref().is_some_and(|v| v != &remote);
+            if state.server_id.is_some() && differs && state.server_id != moved {
+                return Err(
+                    "Connection changed while connecting. Retry using the current address.".into(),
+                );
             }
             state.remote_url = Some(remote.clone());
             state.suspended = false;
@@ -1218,7 +1286,20 @@ pub(crate) async fn migrate_client_state(pool: &SqlitePool) -> Result<(), String
         return Ok(());
     };
     let mut state: Value = serde_json::from_str(&raw).map_err(err)?;
+    if state["baseline"]["protocol"] == 7 {
+        return Ok(());
+    }
     if state["baseline"]["protocol"] == 6 {
+        // Version 7 adds the Trash flag of projects; nothing was in Trash before.
+        for key in ["baseline", "conflict_base", "conflict_server"] {
+            if !state[key].is_null() {
+                upgrade_trash_snapshot(&mut state[key]);
+            }
+        }
+        state["inflight"] = Value::Null;
+        let state: ClientState = serde_json::from_value(state).map_err(err)?;
+        save(&mut tx, &state).await?;
+        tx.commit().await.map_err(err)?;
         return Ok(());
     }
     if state["baseline"]["protocol"] == 5 {
@@ -1428,7 +1509,15 @@ fn upgrade_perspective_snapshot(value: &mut Value) {
 }
 fn upgrade_checkpoint_snapshot(value: &mut Value) {
     value["reviews"] = json!({});
-    value["protocol"] = json!(6);
+    upgrade_trash_snapshot(value);
+}
+fn upgrade_trash_snapshot(value: &mut Value) {
+    if let Some(projects) = value["projects"].as_object_mut() {
+        for project in projects.values_mut() {
+            project["trashed"] = json!(0);
+        }
+    }
+    value["protocol"] = json!(7);
 }
 async fn load(conn: &mut SqliteConnection) -> Result<ClientState, String> {
     let json: Option<String> =
@@ -1785,7 +1874,7 @@ mod tests {
         );
         let projects = list_projects(
             State(remote.clone()),
-            Query(ProjectFilter { area_id: None }),
+            Query(ProjectFilter { area_id: None, trash: None }),
         )
         .await
         .unwrap()
@@ -2220,6 +2309,8 @@ mod tests {
         .unwrap();
         sqlx::raw_sql(include_str!("../migrations/20261026000000_reviews.sql"))
             .execute(&p).await.unwrap();
+        sqlx::raw_sql(include_str!("../migrations/20261110000000_project_trash.sql"))
+            .execute(&p).await.unwrap();
         let d = data(&p).await;
         assert_eq!(d.tasks["x"]["waiting_for"], "Alice");
         assert_eq!(d.tasks["x"]["tags"], json!(["t"]));
@@ -2289,7 +2380,7 @@ mod tests {
         migrate_client_state(&p).await.unwrap();
         migrate_client_state(&p).await.unwrap();
         let state = load(&mut *p.acquire().await.unwrap()).await.unwrap();
-        assert_eq!(state.baseline.protocol, 6);
+        assert_eq!(state.baseline.protocol, 7);
         assert_eq!(state.sequence, 7);
         assert!(state.inflight.is_none());
         assert_eq!(state.baseline.tasks[&id]["notes"], "");
@@ -2451,6 +2542,117 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires localhost networking"]
+    async fn linked_database_follows_its_server_to_a_new_address_but_not_to_another_server() {
+        async fn listen(pool: &SqlitePool) -> (String, tokio::task::JoinHandle<()>) {
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let url = format!("http://{}", listener.local_addr().unwrap());
+            let app = api_router(pool.clone());
+            (url, tokio::spawn(async move { axum::serve(listener, app).await.unwrap() }))
+        }
+        let server = pool().await;
+        let other = pool().await;
+        let (old, old_handle) = listen(&server).await;
+        let (new, new_handle) = listen(&server).await;
+        let (foreign, foreign_handle) = listen(&other).await;
+        let a = SyncEngine::new(pool().await);
+        let kept = task(&a.pool, "Local before linking").await;
+        a.sync_once(&old).await.unwrap();
+        let foreign_task = task(&other, "Belongs to the other server").await;
+
+        // Another server is refused before anything is saved or exchanged.
+        let error = a.sync_once(&foreign).await.unwrap_err();
+        assert!(error.contains("different Nextleaf server"), "{error}");
+        assert_eq!(a.status().await.unwrap().remote_url, Some(old.clone()));
+        assert!(!data(&a.pool).await.tasks.contains_key(&foreign_task));
+        assert!(!data(&other).await.tasks.contains_key(&kept));
+
+        // An address nothing answers on leaves the saved connection alone, too.
+        let closed = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let dead = format!("http://{}", closed.local_addr().unwrap());
+        drop(closed);
+        let error = a.sync_once(&dead).await.unwrap_err();
+        assert!(error.contains("saved connection is unchanged"), "{error}");
+        assert_eq!(a.status().await.unwrap().remote_url, Some(old.clone()));
+
+        // The same server at a new address is accepted, also after Disconnect, and
+        // pending local changes travel with it.
+        old_handle.abort();
+        let _ = old_handle.await;
+        a.disconnect().await.unwrap();
+        let offline = task(&a.pool, "Written while the old address was gone").await;
+        let status = a.sync_once(&new).await.unwrap();
+        assert_eq!(status.remote_url, Some(new.clone()));
+        assert!(!status.suspended && status.error.is_none() && !status.pending);
+        assert!(data(&server).await.tasks.contains_key(&offline));
+        let from_server = task(&server, "Arrives through the new address").await;
+        a.sync_once(&new).await.unwrap();
+        assert!(data(&a.pool).await.tasks.contains_key(&from_server));
+        new_handle.abort();
+        foreign_handle.abort();
+    }
+
+    #[tokio::test]
+    #[ignore = "requires localhost networking"]
+    async fn confirmed_switch_links_to_another_server_and_merges_local_data() {
+        async fn listen(pool: &SqlitePool) -> (String, tokio::task::JoinHandle<()>) {
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let url = format!("http://{}", listener.local_addr().unwrap());
+            let app = api_router(pool.clone());
+            (url, tokio::spawn(async move { axum::serve(listener, app).await.unwrap() }))
+        }
+        let state = |a: &SyncEngine| {
+            let pool = a.pool.clone();
+            async move { load(&mut *pool.acquire().await.unwrap()).await.unwrap() }
+        };
+        let first = pool().await;
+        let second = pool().await;
+        let (first_url, first_handle) = listen(&first).await;
+        let (first_moved, moved_handle) = listen(&first).await;
+        let (second_url, second_handle) = listen(&second).await;
+        let a = SyncEngine::new(pool().await);
+        let synced = task(&a.pool, "Synced with the first server").await;
+        a.sync_once(&first_url).await.unwrap();
+        let pending = task(&a.pool, "Not synced anywhere yet").await;
+        let theirs = task(&second, "Already on the second server").await;
+        let linked = state(&a).await;
+
+        // An address nothing answers on does not give up the old link.
+        let closed = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let dead = format!("http://{}", closed.local_addr().unwrap());
+        drop(closed);
+        assert!(a.switch_server(&dead).await.is_err());
+        let kept = state(&a).await;
+        assert_eq!((kept.server_id, kept.client_id, kept.remote_url), (linked.server_id.clone(), linked.client_id.clone(), Some(first_url.clone())));
+
+        // The same server at another address is a move, not a new link: the baseline stays.
+        a.switch_server(&first_moved).await.unwrap();
+        let moved = state(&a).await;
+        assert_eq!((moved.server_id, moved.client_id), (linked.server_id.clone(), linked.client_id.clone()));
+        assert!(moved.baseline.tasks.contains_key(&synced));
+
+        // Another server: everything local is kept and merged, as on a first connection.
+        let status = a.switch_server(&second_url).await.unwrap();
+        assert_eq!(status.remote_url, Some(second_url.clone()));
+        assert!(status.initialized && !status.pending && status.conflicts.is_empty());
+        let relinked = state(&a).await;
+        assert_ne!(relinked.server_id, linked.server_id);
+        let local = data(&a.pool).await;
+        let remote = data(&second).await;
+        for id in [&synced, &pending, &theirs] {
+            assert!(local.tasks.contains_key(id) && remote.tasks.contains_key(id));
+        }
+        // The first server is left as it was and is now the foreign one.
+        assert!(!data(&first).await.tasks.contains_key(&theirs));
+        let error = a.sync_once(&first_url).await.unwrap_err();
+        assert!(error.contains("different Nextleaf server"), "{error}");
+        assert_eq!(a.status().await.unwrap().remote_url, Some(second_url));
+        first_handle.abort();
+        moved_handle.abort();
+        second_handle.abort();
+    }
+
+    #[tokio::test]
     async fn individual_conflict_choices_preserve_unresolved_drafts() {
         let server = pool().await;
         let a = SyncEngine::new(pool().await);
@@ -2538,6 +2740,8 @@ mod tests {
         .await
         .unwrap();
         sqlx::raw_sql(include_str!("../migrations/20261026000000_reviews.sql"))
+            .execute(&p).await.unwrap();
+        sqlx::raw_sql(include_str!("../migrations/20261110000000_project_trash.sql"))
             .execute(&p).await.unwrap();
         let mut legacy = serde_json::to_value(ClientState {
             baseline: data(&p).await,
@@ -2700,12 +2904,12 @@ mod tests {
             .unwrap();
         migrate_client_state(&a.pool).await.unwrap();
         let state = load(&mut *a.pool.acquire().await.unwrap()).await.unwrap();
-        assert_eq!(state.baseline.protocol, 6);
+        assert_eq!(state.baseline.protocol, 7);
         assert!(state.inflight.is_none());
         assert_eq!(data(&a.pool).await.perspectives.len(), 1);
         let mut legacy = data(&server).await;
         legacy.protocol = 4;
-        assert!(validate(&legacy).unwrap_err().contains("version 6"));
+        assert!(validate(&legacy).unwrap_err().contains("version 7"));
     }
     #[tokio::test]
     async fn review_offline_sync_conflicts_and_restart_preserve_task_edits() {
@@ -2746,15 +2950,56 @@ mod tests {
         edit(&p, &id, json!({"title":"Pending local change"})).await;
         migrate_client_state(&p).await.unwrap();
         let saved = load(&mut *p.acquire().await.unwrap()).await.unwrap();
-        assert_eq!(saved.baseline.protocol, 6);
+        assert_eq!(saved.baseline.protocol, 7);
         assert_eq!(saved.baseline.tasks[&id]["title"], "Before");
         assert_eq!(data(&p).await.tasks[&id]["title"], "Pending local change");
         assert_eq!(saved.baseline.perspectives, baseline.perspectives);
         assert!(saved.baseline.reviews.is_empty());
-        assert!(validate(&baseline).unwrap_err().contains("version 6"));
+        assert!(validate(&baseline).unwrap_err().contains("version 7"));
         let mut invalid = data(&p).await;
         invalid.reviews.insert("inbox".into(), serde_json::from_value(json!({"id":"inbox","data_json": "{}", "revision":uid(),"undo_json":null})).unwrap());
         assert!(validate(&invalid).is_err());
+    }
+
+    #[tokio::test]
+    async fn protocol_six_upgrade_keeps_pending_changes_and_syncs_projects_in_trash() {
+        let p = pool().await;
+        let state = AppState { pool: p.clone() };
+        let id = task(&p, "Before").await;
+        let project = create_project(
+            State(state.clone()),
+            Json(serde_json::from_value(json!({"name":"Old idea"})).unwrap()),
+        )
+        .await
+        .unwrap()
+        .0;
+        let mut baseline = data(&p).await;
+        baseline.protocol = 6;
+        let saved = ClientState { baseline: baseline.clone(), ..ClientState::default() };
+        save(&mut *p.acquire().await.unwrap(), &saved).await.unwrap();
+        edit(&p, &id, json!({"title":"Pending local change"})).await;
+        migrate_client_state(&p).await.unwrap();
+        let saved = load(&mut *p.acquire().await.unwrap()).await.unwrap();
+        assert_eq!(saved.baseline.protocol, 7);
+        assert_eq!(saved.baseline.tasks[&id]["title"], "Before");
+        assert_eq!(data(&p).await.tasks[&id]["title"], "Pending local change");
+        // A peer that still speaks version 6 is refused before anything is written.
+        assert!(validate(&baseline).unwrap_err().contains("version 7"));
+        // Trash is an ordinary synchronized project state; the row is never removed.
+        let _ = update_project(
+            State(state.clone()),
+            Path(project.id.clone()),
+            Json(serde_json::from_value(json!({"trashed":true})).unwrap()),
+        )
+        .await
+        .unwrap();
+        let current = data(&p).await;
+        assert_eq!(current.projects[&project.id]["trashed"], 1);
+        assert_eq!(saved.baseline.projects[&project.id]["trashed"], 0);
+        validate(&current).unwrap();
+        let mut unknown = current.clone();
+        unknown.projects.get_mut(&project.id).unwrap().insert("trashed".into(), json!(2));
+        assert!(validate(&unknown).is_err());
     }
 
 }

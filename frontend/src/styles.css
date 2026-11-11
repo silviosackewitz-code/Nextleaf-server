@@ -1,4 +1,4 @@
-:root{font-family:var(--font-ui);color:var(--ink);background:var(--bg);font-synthesis:none;text-rendering:optimizeLegibility}*{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit}button{cursor:pointer}.app{display:flex;min-height:100vh}.sidebar{width:263px;flex:none;background:var(--panel);color:var(--ink);display:flex;flex-direction:column;padding:20px 13px 22px;min-height:100vh}.brand{font-size:20px;font-weight:650;letter-spacing:-.4px;padding:4px 13px 33px;display:flex;gap:12px;align-items:center;color:var(--on-accent)}.brandmark{color:var(--accent);font-size:26px}.navlabel{font-size:11px;color:var(--muted);letter-spacing:1.6px;font-weight:750;text-transform:uppercase;padding:0 14px;margin-bottom:7px}.navlabel.spaced{margin-top:27px}.navitem{display:flex;align-items:center;width:100%;height:37px;gap:11px;border:0;border-radius:var(--radius);background:transparent;color:var(--ink);text-align:left;padding:0 11px;font-size:13px}.navitem:hover{background:var(--hover)}.navitem.active{background:var(--accent-soft);color:var(--on-accent);font-weight:650}.navsymbol{font-size:17px;flex:0 0 20px;width:20px;display:inline-flex;align-items:center;justify-content:center;color:var(--ink)}.ellipsis{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sideform{margin:7px 9px 0;display:flex;gap:3px}.sideform input{min-width:0;flex:1;background:var(--field);border:1px solid var(--line-soft);color:var(--on-accent);border-radius:var(--radius);padding:7px 9px;font-size:12px}.sideform input::placeholder{color:var(--muted)}.sideform button{border:0;color:var(--on-accent);background:var(--accent-fill);border-radius:var(--radius);padding:4px 9px}.projectform{flex-wrap:wrap}.projectform input{width:100%;flex:1 0 100%}.projectform select{flex:1;background:var(--field);color:var(--ink);border:1px solid var(--line-soft);border-radius:var(--radius);font-size:12px;padding:5px}.settings{margin-top:auto;background:none;color:var(--muted);border:none;text-align:left;font-size:13px;padding:12px}.main{flex:1;min-width:0;padding:34px clamp(20px,4vw,70px) 30px;max-width:1450px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:28px}.eyebrow{text-transform:uppercase;letter-spacing:1.5px;font-weight:700;color:var(--accent);font-size:10px}h1{font-size:30px;line-height:1.25;font-weight:670;margin:5px 0 0;color:var(--ink);letter-spacing:-.8px}.topright{display:flex;align-items:center;gap:14px}.count{font-size:13px;color:var(--muted)}.iconbutton{border:1px solid var(--line-soft);background:var(--panel);border-radius:var(--radius);width:35px;height:35px;font-size:20px;color:var(--muted)}.hint,.error,.settingspanel{border-radius:var(--radius);padding:13px 16px;font-size:13px;margin-bottom:19px}.hint{background:var(--accent-soft);color:var(--muted)}.error{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-bg)}.settingspanel{background:var(--field)}.settingspanel h3{margin:0 0 5px}.settingspanel p{line-height:1.5}.settingspanel form{display:flex;gap:8px}.settingspanel input{flex:1;min-width:0;padding:8px}.settingspanel button{border:0;background:var(--accent-fill);color:var(--on-accent);padding:8px 12px;border-radius:var(--radius)}.sideform button:disabled{opacity:.5}.listhead{display:flex;justify-content:space-between;color:var(--muted);letter-spacing:1.4px;font-size:10px;font-weight:750;padding:0 14px 12px;border-bottom:1px solid var(--line-soft)}.listhead span:last-child{padding-right:17px}.tasks{min-height:220px}.task{display:flex;align-items:flex-start;gap:15px;border-bottom:1px solid var(--line-soft);padding:16px 14px;min-height:68px;background:transparent}.checkbox{width:19px;height:19px;border:1.5px solid var(--line);border-radius:50%;background:var(--panel);flex:none;color:var(--on-accent);display:flex;align-items:center;justify-content:center;font-size:12px}.checkbox.checked{background:var(--accent-fill);border-color:var(--accent)}.taskbody{flex:1;min-width:0}.tasktitle{font-size:14px;color:var(--ink);font-weight:540;overflow-wrap:anywhere}.tasktitle.done{text-decoration:line-through;color:var(--muted)}.taskmeta{font-size:12px;color:var(--muted);margin-top:5px}.taskstatus{color:var(--muted);background:transparent;border:1px solid var(--line-soft);padding:7px 9px;border-radius:var(--radius);font-size:12px}.empty{text-align:center;padding:62px 20px;color:var(--muted)}.emptyicon{display:inline-flex;width:56px;height:56px;align-items:center;justify-content:center;background:var(--accent-soft);border-radius:50%;font-size:24px;color:var(--accent)}.empty h2{color:var(--muted);font-size:18px;font-weight:550;margin:16px 0 6px}.empty p{font-size:13px}.footer{font-size:11px;color:var(--muted);margin-top:40px;text-align:center}@media(max-width:720px){.app{display:block}.sidebar{min-height:auto;width:100%;padding:12px 12px 14px}.brand{padding:4px 3px 12px;font-size:18px}.sidebar nav{display:flex;overflow-x:auto;gap:4px;scrollbar-width:thin}.navitem{white-space:nowrap;width:auto;padding:0 10px;flex:none}.navlabel{padding:0 4px;margin-top:10px}.navlabel.spaced{margin-top:11px}.sideform{margin:5px 2px 0}.settings{padding:8px 4px;margin-top:12px}.main{padding:23px 16px}.topbar{margin-bottom:20px}h1{font-size:26px}.task{padding:15px 3px;gap:10px}.taskstatus{max-width:104px}}
+:root{font-family:var(--font-ui);color:var(--ink);background:var(--bg);font-synthesis:none;text-rendering:optimizeLegibility}*{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit}button{cursor:pointer}.app{display:flex;min-height:100vh}.sidebar{width:263px;flex:none;background:var(--panel);color:var(--ink);display:flex;flex-direction:column;padding:20px 13px 22px;min-height:100vh}.brand{font-size:20px;font-weight:650;letter-spacing:-.4px;padding:4px 13px 33px;display:flex;gap:12px;align-items:center;color:var(--on-accent)}.brandmark{color:var(--accent);font-size:26px}.navlabel{font-size:11px;color:var(--muted);letter-spacing:1.6px;font-weight:750;text-transform:uppercase;padding:0 14px;margin-bottom:7px}.navlabel.spaced{margin-top:27px}.navitem{display:flex;align-items:center;width:100%;height:37px;gap:11px;border:0;border-radius:var(--radius);background:transparent;color:var(--ink);text-align:left;padding:0 11px;font-size:13px}.navitem:hover{background:var(--hover)}.navitem.active{background:var(--accent-soft);color:var(--on-accent);font-weight:650}.navsymbol{font-size:17px;flex:0 0 20px;width:20px;display:inline-flex;align-items:center;justify-content:center;color:var(--ink)}.ellipsis{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sideform{margin:7px 9px 0;display:flex;gap:3px}.sideform input{min-width:0;flex:1;background:var(--field);border:1px solid var(--line-soft);color:var(--on-accent);border-radius:var(--radius);padding:7px 9px;font-size:12px}.sideform input::placeholder{color:var(--muted)}.sideform button{border:0;color:var(--on-accent);background:var(--accent-fill);border-radius:var(--radius);padding:4px 9px}.projectform{flex-wrap:wrap}.projectform input{width:100%;flex:1 0 100%}.projectform select{flex:1;background:var(--field);color:var(--ink);border:1px solid var(--line-soft);border-radius:var(--radius);font-size:12px;padding:5px}.settings{margin-top:auto;background:none;color:var(--muted);border:none;text-align:left;font-size:13px;padding:12px}.main{flex:1;min-width:0;padding:34px clamp(20px,4vw,70px) 30px;max-width:1450px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:28px}.eyebrow{text-transform:uppercase;letter-spacing:1.5px;font-weight:700;color:var(--accent);font-size:10px}h1{font-size:30px;line-height:1.25;font-weight:670;margin:5px 0 0;color:var(--ink);letter-spacing:-.8px}.topright{display:flex;align-items:center;gap:14px}.count{font-size:13px;color:var(--muted)}.iconbutton{border:1px solid var(--line-soft);background:var(--panel);border-radius:var(--radius);width:35px;height:35px;font-size:20px;color:var(--muted)}.hint,.error{border-radius:var(--radius);padding:13px 16px;font-size:13px;margin-bottom:19px}.hint{background:var(--accent-soft);color:var(--muted)}.error{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-bg)}.sideform button:disabled{opacity:.5}.listhead{display:flex;justify-content:space-between;color:var(--muted);letter-spacing:1.4px;font-size:10px;font-weight:750;padding:0 14px 12px;border-bottom:1px solid var(--line-soft)}.listhead span:last-child{padding-right:17px}.tasks{min-height:220px}.task{display:flex;align-items:flex-start;gap:15px;border-bottom:1px solid var(--line-soft);padding:16px 14px;min-height:68px;background:transparent}.checkbox{width:19px;height:19px;border:1.5px solid var(--line);border-radius:50%;background:var(--panel);flex:none;color:var(--on-accent);display:flex;align-items:center;justify-content:center;font-size:12px}.checkbox.checked{background:var(--accent-fill);border-color:var(--accent)}.taskbody{flex:1;min-width:0}.tasktitle{font-size:14px;color:var(--ink);font-weight:540;overflow-wrap:anywhere}.tasktitle.done{text-decoration:line-through;color:var(--muted)}.taskmeta{font-size:12px;color:var(--muted);margin-top:5px}.taskstatus{color:var(--muted);background:transparent;border:1px solid var(--line-soft);padding:7px 9px;border-radius:var(--radius);font-size:12px}.empty{text-align:center;padding:62px 20px;color:var(--muted)}.emptyicon{display:inline-flex;width:56px;height:56px;align-items:center;justify-content:center;background:var(--accent-soft);border-radius:50%;font-size:24px;color:var(--accent)}.empty h2{color:var(--muted);font-size:18px;font-weight:550;margin:16px 0 6px}.empty p{font-size:13px}.footer{font-size:11px;color:var(--muted);margin-top:40px;text-align:center}@media(max-width:720px){.app{display:block}.sidebar{min-height:auto;width:100%;padding:12px 12px 14px}.brand{padding:4px 3px 12px;font-size:18px}.sidebar nav{display:flex;overflow-x:auto;gap:4px;scrollbar-width:thin}.navitem{white-space:nowrap;width:auto;padding:0 10px;flex:none}.navlabel{padding:0 4px;margin-top:10px}.navlabel.spaced{margin-top:11px}.sideform{margin:5px 2px 0}.settings{padding:8px 4px;margin-top:12px}.main{padding:23px 16px}.topbar{margin-bottom:20px}h1{font-size:26px}.task{padding:15px 3px;gap:10px}.taskstatus{max-width:104px}}
 
 /* Keep native select behavior while matching the surrounding app controls. */
 .areafilter,
@@ -47,8 +47,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .projectheading{display:flex;align-items:center;justify-content:space-between;padding-right:10px}
 .projectheading button{border:0;background:transparent;color:var(--ink);font-size:22px;width:30px;height:30px;border-radius:var(--radius)}
 .projectheading button:hover{background:var(--hover)}
-.settingspanel h2{font-size:18px;margin:0 0 20px}
-.settingspanel h3{margin-top:22px}
 .taskdialog{width:min(640px,calc(100vw - 32px));max-height:calc(100dvh - 48px);overflow:auto;border:1px solid var(--line-soft);border-radius:var(--radius-lg);padding:24px;color:var(--ink);background:var(--panel);box-shadow:0 20px 70px var(--shadow)}
 .taskdialog::backdrop{background:var(--scrim)}
 .detailheader{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:24px}
@@ -356,9 +354,6 @@ h1{font-size:24px;margin:0}
   .drawersheet .projectheading .projectcollapse{width:32px}
   .drawersheet .sectionchevron{width:32px;flex-basis:32px}
   .drawersheet .tagfilters button{min-height:38px;font-size:14px}
-  .settingspanel{padding:12px}
-  .settingspanel form{flex-wrap:wrap}
-  .settingspanel input,.settingspanel button{font-size:16px;min-height:44px}
 }
 .checkbox.overdue{border-color:var(--danger)}
 @media(max-width:720px),(pointer:coarse) and (max-width:1024px){.task .checkbox.overdue::before{border-color:var(--danger)}}
@@ -473,25 +468,12 @@ h1{font-size:24px;margin:0}
 .perspectiveeditor button:disabled{opacity:.5;cursor:default}
 @media(max-width:720px){.perspectiveeditor input:not([type=checkbox]),.perspectiveeditor select{min-height:44px;font-size:16px}.listviewcontrols{flex-wrap:wrap}.perspectiveactions button{min-height:44px}}
 
-.mcpaccess { margin: 20px 0; border-top: 1px solid var(--line); padding-top: 16px; }
-.mcpaccess fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
-.mcpaccess p { max-width: 76ch; }
-.mcppresets, .mcpactions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
-.mcpcheck { display: flex; align-items: center; gap: 10px; min-height: 44px; }
-.mcpcheck input { width: 18px; height: 18px; min-height: 18px; flex: 0 0 18px; margin: 0; }
-.mcppermissiongroups { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 12px 24px; }
-.mcppermissiongroups h4 { margin: 12px 0 4px; }
-.mcpaccess summary { cursor: pointer; padding: 12px 0; }
-.mcppresets button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); }
-.mcppresets button[aria-pressed="true"] { background: var(--accent-fill); color: var(--on-accent); border-color: var(--accent); }
-
 /* Native sync and project actions share the compact phone header. */
 @media(max-width:720px),(pointer:coarse) and (max-width:1024px){
   .topbar .syncindicator{grid-row:3;grid-column:2 / -1;justify-self:end;min-height:44px;max-width:100%;font-size:13px}
   .topbar:has(.syncindicator) .count{grid-column:1 / 3;align-self:center}
   .topbar .projectheaderactions{grid-row:4;grid-column:1 / -1;justify-self:start}
   .projectheaderactions button{min-height:44px;font-size:14px}
-  .settingspanel pre,.settingspanel code{white-space:pre-wrap;overflow-wrap:anywhere}
   .taskdialog input:not([type="checkbox"]):not([type="radio"]),.taskdialog select,.taskdialog textarea{font-size:16px}
 }
 
@@ -509,12 +491,54 @@ h1{font-size:24px;margin:0}
 .topbar,.topright{flex-wrap:wrap}
 .viewtitle{min-width:0;overflow-wrap:anywhere}
 
-.sidebarsettings{padding-bottom:24px;margin-bottom:24px;border-bottom:1px solid var(--line-soft)}
-.sidebarsettings fieldset{border:0;padding:0;margin:16px 0}.sidebarsettings legend,.sidebarsettings h4{font-size:14px;font-weight:600;margin:0 0 8px}
-.sidebarviewchoices{display:flex;flex-wrap:wrap;gap:8px 20px}
-.sidebarsettings label{display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer}
-.sidebarsettings input[type=checkbox]{flex:none;width:18px;height:18px;accent-color:var(--accent);margin:0;padding:0}
-.sidebarperspectiverow{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line-soft);padding:6px 0}
-.sidebarperspectiverow label{min-width:0;overflow-wrap:anywhere;flex:1}.sidebarperspectiverow>div,.sidebarsettingsactions{display:flex;gap:8px;flex-wrap:wrap}.sidebarsettingsactions{margin-top:16px}
-.sidebarsettings button{min-height:44px}.sidebarperspectiverow>div{flex:none}
-@media(max-width:720px){.sidebarperspectiverow{flex-wrap:wrap}.sidebarperspectiverow label{flex-basis:100%}.sidebarsettingsactions button{width:100%}}
+/* Calmer surfaces: selection is neutral, the accent marks the icon and the one primary action. */
+.navsymbol{color:var(--muted)}
+.brandmark{display:inline-flex}
+.navitem.active,.projectnav.active{background:var(--hover)}
+.navitem.active .navsymbol{color:var(--accent)}
+.task.expanded,.projectrow.expanded{background:var(--panel);border:1px solid var(--line);box-shadow:0 3px 12px var(--shadow)}
+.tag{background:transparent}
+.areafilter{color:var(--ink)}
+.notedisplay button[aria-pressed="true"]{background:var(--hover)}
+.newitemtrigger{border-color:var(--accent-fill);background-color:var(--accent-fill);background-image:none;color:var(--on-accent);font-weight:600;padding-right:12px}
+.newitemtrigger::after{content:"";flex:none;width:6px;height:6px;margin:-3px 2px 0;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg)}
+.newitemtrigger:hover:not(:disabled){filter:brightness(1.1)}
+.contextfilters select{field-sizing:content}
+
+/* Phone list header: title, count and refresh share one row; the Area filter and view controls share the next. */
+@media(max-width:720px),(pointer:coarse) and (max-width:1024px){
+  .main>.topbar{display:flex;flex-wrap:wrap;align-items:center;gap:0 4px;margin:0 0 8px;padding:6px 0}
+  .topbar .navigationtrigger{order:1;margin-left:-8px}
+  .topbar>.viewtitle{order:2;flex:1 1 calc(100% - 100px);min-width:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;padding:0}
+  .topbar h1{font-size:23px;line-height:1.25;letter-spacing:-.4px}
+  .topbar .viewtitle .count{padding:0;font-size:13px}
+  .topright>.refreshbutton{order:3;margin-right:-8px}
+  .topbar .areafilter{order:4;flex:0 1 auto;min-width:0;max-width:none;margin-right:auto;height:44px;padding-left:2px;border:0;background-color:transparent;font-size:15px}
+  .topbar .syncindicator{order:5;min-height:44px;font-size:13px}
+  .topbar .listviewcontrols{order:6;flex:none;align-self:center;margin-left:auto}
+  .topbar .projectheaderactions{order:7;flex:1 0 100%}
+  .listtoolbar{margin-bottom:4px}
+  .contextfilters{scrollbar-width:none;padding-bottom:0}
+  .contextfilters::-webkit-scrollbar{display:none}
+  .contextfilters button,.contextfilters select{border:5px solid transparent;background-clip:padding-box;padding:0 12px}
+  .contextfilters select{padding-right:26px}
+  .contextfilters button[aria-pressed="true"]{background-clip:padding-box}
+  .drawersheet .navsymbol svg{width:21px;height:21px}
+}
+
+/* Projects in Trash: a quiet destructive entry in the editor, and a restore list above the trashed actions. */
+.taskdetails .projecttrash{margin-left:auto;min-height:32px;padding:5px 12px;border:1px solid var(--line-soft);border-radius:var(--radius);background:transparent;color:var(--muted);font-size:13px}
+.taskdetails .projecttrash:hover:not(:disabled){color:var(--danger);border-color:var(--danger)}
+.dialoghost{display:contents}
+.taskdialog>p+p{margin-top:10px}
+.trashedprojects{margin-bottom:10px}
+.trashedprojects .projectrow{align-items:center}
+.trashedprojects .projectmeta{max-width:none;white-space:nowrap}
+.trashedprojects .settingsbutton{flex:none;min-height:30px}
+@media(max-width:720px),(pointer:coarse) and (max-width:1024px){
+  .taskdetails .projecttrash{min-height:44px;font-size:15px}
+  .trashedprojects .projectrow{grid-template-columns:28px minmax(0,1fr) auto}
+  .trashedprojects .projectrow>.projecttitle{min-height:0}
+  .trashedprojects .projectmeta{grid-column:2;grid-row:2}
+  .trashedprojects .settingsbutton{grid-column:3;grid-row:1/3;align-self:center;min-height:44px}
+}

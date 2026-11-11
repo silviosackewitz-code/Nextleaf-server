@@ -1,6 +1,99 @@
-.taskdialog:has(>.reviewworkspace){width:min(1120px,calc(100vw - 32px));height:min(850px,calc(100dvh - 48px))}
-.reviewworkspace{min-width:0}.reviewsummary,.reviewheading,.reviewfooter,.reviewtaskactions,.reviewcapture{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.reviewsummary,.reviewheading{justify-content:space-between}.reviewlayout{display:grid;grid-template-columns:minmax(180px,240px) minmax(0,1fr);gap:24px;margin-top:20px}.reviewqueue{display:flex;flex-direction:column;gap:6px;align-self:start}.reviewqueue button{text-align:left;padding:10px;border:1px solid var(--line-soft);background:var(--field);color:var(--ink);border-radius:var(--radius);overflow-wrap:anywhere}.reviewqueue button[aria-current=step]{border-color:var(--accent);background:var(--accent-soft)}.reviewqueue small{display:block;color:var(--muted);margin-top:5px}.reviewall{display:flex;gap:8px;align-items:center;font-size:12px;line-height:1.4;padding:10px 0}.reviewall input{width:auto}.reviewcontent{min-width:0}.reviewcontent h3{margin:0 0 10px}.reviewdates{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12px;color:var(--muted);margin:16px 0}.reviewtask{border-bottom:1px solid var(--line-soft);padding:12px 0}.reviewtask small{display:block;color:var(--muted)}.reviewtasktitle{border:0;padding:6px 0;background:transparent;color:var(--ink);text-align:left;font-size:15px;white-space:normal;overflow-wrap:anywhere}.reviewnotes{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.5}.reviewtaskactions{margin-top:8px}.reviewtaskactions button{font-size:12px}.reviewcapture{margin:24px 0}.reviewcapture label{flex:1;min-width:140px}.reviewcapture input{display:block;width:100%;margin-top:8px}.reviewfooter{position:sticky;bottom:0;padding:14px 0;background:var(--panel);border-top:1px solid var(--line-soft)}.reviewworkspace button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-@media(max-width:720px),(pointer:coarse) and (max-width:1024px){.taskdialog:has(>.reviewworkspace){width:100%;height:var(--visible-height,100dvh);max-height:var(--visible-height,100dvh)}.reviewlayout{grid-template-columns:1fr;gap:16px}.reviewqueue{max-height:180px;overflow:auto}.reviewworkspace button{min-height:44px}.reviewworkspace input,.reviewworkspace select{font-size:16px}.reviewfooter{padding-bottom:max(14px,env(safe-area-inset-bottom,0px))}}
-.reviewworkspace button:not(.reviewtasktitle){border:1px solid var(--line);border-radius:var(--radius);padding:8px 12px;background:var(--field);color:var(--ink)}.reviewworkspace button:not(.reviewtasktitle):hover:not(:disabled){background:var(--hover)}.reviewworkspace button.primary{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent)}.reviewworkspace button.primary:hover:not(:disabled){background:var(--accent-fill);filter:brightness(1.1)}.reviewworkspace button[aria-current=step]{border-color:var(--accent);background:var(--accent-soft)}.reviewworkspace button:disabled{opacity:.5;cursor:default}.reviewcapture input{border:1px solid var(--line);border-radius:var(--radius);padding:9px 10px;background:var(--field);color:var(--ink)}.reviewtaskactions button{padding:5px 9px}.reviewcontent h4{color:var(--muted);font-size:12px;letter-spacing:.04em;margin:22px 0 4px}.reviewtasktitle:hover{text-decoration:underline}
+/* Review: one unit at a time, the queue beside it and a docked review bar. */
+.main:has(>.reviewworkspace){padding-bottom:0}
+.reviewworkspace{display:flex;flex-direction:column;min-width:0;min-height:calc(100dvh - 20px)}
+.reviewtop{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding-bottom:14px;border-bottom:1px solid var(--line-soft)}
+.reviewtop .viewtitle{display:flex;align-items:baseline;gap:12px}
+.reviewprogress{flex:0 1 160px;height:4px;border-radius:2px;background:var(--line-soft);overflow:hidden}
+.reviewprogress span{display:block;height:100%;background:var(--accent-fill)}
+.reviewdone{margin-left:auto}
+.reviewworkspace>.error{margin:14px 0 0}
+.reviewlayout{flex:1;display:grid;grid-template-columns:minmax(170px,230px) minmax(0,1fr);gap:28px;padding-top:18px;min-height:0}
 
-.reviewqueue>*{flex-shrink:0}.reviewcontent:focus{outline:none}.reviewpresets{display:flex;flex-wrap:wrap;gap:8px}.reviewpresets button{min-height:36px;border:1px solid var(--line);border-radius:var(--radius);padding:7px 10px;color:var(--ink);background:var(--field)}
+.reviewqueue{display:flex;flex-direction:column;gap:2px;align-self:start;min-width:0}
+.reviewqueue button{display:flex;align-items:center;gap:8px;min-height:32px;padding:4px 10px;border:0;border-radius:var(--radius);background:transparent;color:var(--ink);font-size:13px;text-align:left}
+.reviewqueue button:hover:not(:disabled){background:var(--hover)}
+.reviewqueue button[aria-current=step]{background:var(--hover);font-weight:600}
+.reviewmark{flex:none;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;color:var(--muted)}
+.reviewmark:empty::before{content:"";box-sizing:border-box;width:8px;height:8px;border:1.5px solid var(--line);border-radius:50%}
+.reviewqueue button[aria-current=step] .reviewmark:empty::before{border-color:var(--accent);background:var(--accent)}
+.reviewmark.done{color:var(--accent)}
+.reviewqueuename{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.reviewqueue small{flex:none;color:var(--muted);font-family:var(--font-mono);font-size:11px;font-weight:400}
+.reviewhidden{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.reviewall{display:flex;align-items:center;gap:10px;margin-top:12px;padding:6px 10px;color:var(--muted);font-size:12px;line-height:1.3;cursor:pointer}
+
+.reviewcontent{display:flex;flex-direction:column;min-width:0;min-height:0}
+.reviewcontent:focus{outline:none}
+.reviewunit{display:flex;flex-direction:column;gap:4px;padding:0 8px 6px}
+.reviewmeta{margin:0;color:var(--muted);font-family:var(--font-mono);font-size:11px;letter-spacing:.5px}
+.reviewheading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.reviewheading .settingsbutton{flex:none;white-space:nowrap}
+.reviewunit h2{margin:0;font-size:22px;font-weight:600;letter-spacing:-.4px;line-height:1.25;overflow-wrap:anywhere}
+.reviewunit .settingshint{margin:0}
+.reviewnotes{display:flex;align-items:flex-start;gap:8px}
+.reviewnotes .notes{flex:1;min-width:0;margin:0;padding-top:6px;color:var(--muted);font-size:13px;line-height:1.5}
+.reviewnotes .notes.collapsed{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reviewnotes button{flex:none}
+.reviewtasks h3{margin:0;padding:16px 8px 6px;font-family:var(--font-mono);font-size:12px;font-weight:400;color:var(--muted)}
+.reviewempty{margin:18px 8px 0;color:var(--muted)}
+.reviewtargets{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px}
+.reviewtargets button{min-height:26px;padding:2px 10px;border:1px solid var(--line-soft);border-radius:13px;background:transparent;color:var(--muted);font-size:12px}
+.reviewtargets button:hover:not(:disabled){background:var(--hover);color:var(--ink)}
+.reviewcapture{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 8px;color:var(--muted)}
+.reviewcapture>span{flex:none;width:22px;text-align:center;font-size:18px}
+.reviewcapture input{flex:1;min-width:0;padding:8px 4px;border:0;border-bottom:1px solid transparent;background:transparent;color:var(--ink);font-size:14px}
+.reviewcapture input:focus{outline:none;border-bottom-color:var(--accent)}
+.reviewundo{margin:10px 8px 0;color:var(--muted);font-size:12px}
+/* Loading after every save would otherwise flash the whole list. */
+.reviewtasks button:disabled,.reviewqueue button:disabled,.reviewtargets button:disabled{opacity:1}
+
+.reviewbar{position:sticky;bottom:0;z-index:2;display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:auto;padding:10px 12px;border:1px solid var(--line-soft);border-bottom:0;border-radius:var(--radius-lg) var(--radius-lg) 0 0;background:var(--panel);box-shadow:0 -4px 16px var(--shadow)}
+.reviewcapture+.reviewbar,.reviewundo+.reviewbar{margin-top:auto}
+.reviewbarspace{flex:1}
+.reviewschedule{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:4px 10px;border:1px solid var(--line-soft);border-radius:var(--radius);background:transparent;color:var(--ink);font-size:13px;text-align:left}
+.reviewschedule small{color:var(--muted);font-size:11px}
+.reviewschedule:hover:not(:disabled){background:var(--hover)}
+.reviewbar .settingsbutton{min-height:36px}
+.reviewbar .segmented button{min-height:30px;font-size:13px}
+.reviewstep{min-width:36px;padding:0;font-size:18px;line-height:1}
+
+.reviewend{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:40px 16px;text-align:center}
+.reviewend h2{margin:8px 0 0;font-size:22px;font-weight:600}
+.reviewend p{margin:0}
+.reviewendmark{display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:50%;background:var(--accent-soft);color:var(--accent)}
+.reviewend .settingsactions{margin-top:10px;justify-content:center}
+
+.reviewpresets{display:flex;flex-wrap:wrap;gap:8px}
+.reviewpresets button{min-height:36px;border:1px solid var(--line);border-radius:var(--radius);padding:7px 10px;color:var(--ink);background:var(--field)}
+
+@media(max-width:720px),(pointer:coarse) and (max-width:1024px){
+  .reviewworkspace{min-height:calc(100dvh - env(safe-area-inset-top,0px))}
+  .reviewtop{gap:0 4px;padding:6px 0 10px}
+  .reviewtop .iconbutton{margin-left:-8px}
+  .reviewtop .viewtitle{flex:1;min-width:0;align-items:center;gap:8px}
+  .reviewcounter{display:flex;align-items:center;gap:2px;min-height:44px;padding:0 4px;border:0;background:transparent;color:var(--muted);font-family:var(--font-mono);font-size:13px}
+  .reviewprogress{flex:1 0 100%;height:3px}
+  .reviewlayout{display:flex;flex-direction:column;padding-top:14px}
+  .reviewcontent{flex:1}
+  .reviewheading{flex-wrap:wrap;gap:4px}
+  .reviewheading h2{flex:1 1 100%}
+  .reviewheading .settingsbutton{margin-left:-12px}
+  .reviewqueue button{min-height:48px;font-size:16px}
+  .reviewall{min-height:48px;font-size:14px}
+  .reviewunit{padding:0 2px 6px}
+  .reviewtasks h3{padding:16px 2px 4px;font-size:13px}
+  .reviewtargets{padding-top:4px}
+  .reviewtargets button{min-height:36px;padding:4px 13px;border-radius:18px;font-size:14px}
+  .reviewcapture{min-height:48px;padding:0 2px}
+  .reviewcapture input{font-size:16px}
+  .reviewbar{margin:12px -12px 0;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));border-width:1px 0 0;border-radius:0;gap:8px}
+  .reviewschedule{flex:1 0 100%;flex-direction:row;align-items:center;justify-content:space-between;min-height:40px;padding:0 4px;border:0;font-size:14px}
+  .reviewschedule small{font-size:13px}
+  .reviewbar .segmented{flex:1 0 100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .reviewbar .segmented button{min-height:44px;font-size:15px}
+  .reviewbarspace{display:none}
+  .reviewbar .settingsbutton{min-height:48px;font-size:16px}
+  .reviewstep{flex:none;min-width:48px;font-size:22px}
+  .reviewconfirm{flex:1}
+  .reviewpresets button{min-height:44px}
+}

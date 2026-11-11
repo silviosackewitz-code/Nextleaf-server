@@ -26896,9 +26896,9 @@ DEALINGS IN THE SOFTWARE.
 
 
 
-## rustls-webpki 0.103.15
+## rustls-webpki 0.103.16
 License: ISC
-Source: https://crates.io/api/v1/crates/rustls-webpki/0.103.15/download
+Source: https://crates.io/api/v1/crates/rustls-webpki/0.103.16/download
 
 
 --- LICENSE ---
@@ -38763,9 +38763,9 @@ SOFTWARE.
 
 
 
-## webpki-roots 1.0.9
+## webpki-roots 1.0.10
 License: CDLA-Permissive-2.0
-Source: https://crates.io/api/v1/crates/webpki-roots/1.0.9/download
+Source: https://crates.io/api/v1/crates/webpki-roots/1.0.10/download
 
 
 --- LICENSE ---

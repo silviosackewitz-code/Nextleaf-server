@@ -1,7 +1,8 @@
 import { matchesTagFilter, type TagFilter } from './taskList.ts';
 import type { Project, Task } from './api';
 export const projectFields = ['name', 'notes', 'area_id', 'project_type', 'status', 'due_date', 'starred', 'tags'] as const;
-export type ProjectChanges = Partial<Pick<Project, typeof projectFields[number]>>;
+/** `trashed` is not an editor field: it is set by Move to Trash and Restore only. */
+export type ProjectChanges = Partial<Pick<Project, typeof projectFields[number] | 'trashed'>>;
 export function projectChanges(original: Project, draft: Project): ProjectChanges {
   return Object.fromEntries(projectFields.filter(field => JSON.stringify(original[field]) !== JSON.stringify(draft[field])).map(field => [field, draft[field]]));
 }
@@ -12,5 +13,5 @@ export function projectRows(projects: Project[], tasks: Task[], tag: TagFilter) 
 }
 
 export function projectExpected(original: Project, changes: ProjectChanges): ProjectChanges {
-  return Object.fromEntries(projectFields.filter(field => Object.hasOwn(changes, field)).map(field => [field, original[field]]));
+  return Object.fromEntries([...projectFields, 'trashed' as const].filter(field => Object.hasOwn(changes, field)).map(field => [field, original[field]]));
 }

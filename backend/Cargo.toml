@@ -1,6 +1,6 @@
 [package]
 name = "nextleaf-server"
-version = "0.1.5"
+version = "0.3.0"
 license = "GPL-3.0-only"
 repository = "https://github.com/silviosackewitz-code/Nextleaf-server"
 edition = "2021"

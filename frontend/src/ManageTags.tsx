@@ -2,13 +2,14 @@ import { useEffect, useId, useState } from 'react';
 import { api, type Area, type Tag } from './api';
 import Dialog from './Dialog';
 import './ManageTags.css';
+import { t } from './i18n.ts';
 
 type Tab = 'areas' | 'person' | 'tag';
 type Entry = Area | Tag;
-const tabs: { id: Tab; label: string; singular: string }[] = [
-  { id: 'areas', label: 'Areas', singular: 'area' },
-  { id: 'person', label: 'Contacts', singular: 'contact' },
-  { id: 'tag', label: 'Tags', singular: 'tag' },
+const tabs: { id: Tab; label: string; newLabel: string; nameLabel: string; empty: string }[] = [
+  { id: 'areas', label: 'Areas', newLabel: 'New area', nameLabel: 'Area name', empty: 'No areas.' },
+  { id: 'person', label: 'Contacts', newLabel: 'New contact', nameLabel: 'Contact name', empty: 'No contacts.' },
+  { id: 'tag', label: 'Tags', newLabel: 'New tag', nameLabel: 'Tag name', empty: 'No tags.' },
 ];
 
 export default function ManageTags({ onClose, onChanged }: { onClose: () => void; onChanged: () => void | Promise<void> }) {
@@ -25,7 +26,7 @@ export default function ManageTags({ onClose, onChanged }: { onClose: () => void
   const [kind, setKind] = useState<'tag' | 'person'>('tag');
   const [discard, setDiscard] = useState(false);
   const id = useId();
-  const singular = tabs.find(item => item.id === tab)!.singular;
+  const current = tabs.find(item => item.id === tab)!;
   const entries: Entry[] = (tab === 'areas' ? areas : tags.filter(tag => tag.kind === tab))
     .filter(entry => showArchived || !entry.archived)
     .sort((a, b) => Number(a.archived) - Number(b.archived) || a.name.localeCompare(b.name));
@@ -59,7 +60,7 @@ export default function ManageTags({ onClose, onChanged }: { onClose: () => void
     try {
       remember(await operation()); setEditing(null); setName('');
       try { await onChanged(); }
-      catch { setError('Saved. Refresh the main list to see the changes.'); }
+      catch { setError(t('Saved. Refresh the main list to see the changes.')); }
     } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
     finally { setBusy(false); }
   }
@@ -80,14 +81,14 @@ export default function ManageTags({ onClose, onChanged }: { onClose: () => void
       : api.updateArea(entry.id, { archived: !entry.archived }, { name: entry.name, archived: entry.archived }));
   }
   const editor = <form className="manageeditor" onSubmit={event => { event.preventDefault(); save(); }}>
-    <input autoFocus aria-label={`${singular[0].toUpperCase()}${singular.slice(1)} name`} value={name} disabled={busy} maxLength={255} onChange={event => setName(event.target.value)} />
-    {tab !== 'areas' && <select aria-label="Tag type" value={kind} disabled={busy} onChange={event => setKind(event.target.value as 'tag' | 'person')}><option value="tag">Tag</option><option value="person">Contact</option></select>}
-    <div className="manageeditoractions"><button type="button" disabled={busy} onClick={() => { setEditing(null); if (error) setLoadNumber(value => value + 1); setError(''); }}>Cancel</button><button className="primary" disabled={busy || !name.trim()}>{busy ? 'Saving…' : editing === 'new' ? 'Create' : 'Save'}</button></div>
+    <input autoFocus aria-label={t(current.nameLabel)} value={name} disabled={busy} maxLength={255} onChange={event => setName(event.target.value)} />
+    {tab !== 'areas' && <select aria-label={t('Tag type')} value={kind} disabled={busy} onChange={event => setKind(event.target.value as 'tag' | 'person')}><option value="tag">{t('Tag')}</option><option value="person">{t('Contact')}</option></select>}
+    <div className="manageeditoractions"><button type="button" disabled={busy} onClick={() => { setEditing(null); if (error) setLoadNumber(value => value + 1); setError(''); }}>{t('Cancel')}</button><button className="primary" disabled={busy || !name.trim()}>{busy ? t('Saving…') : editing === 'new' ? t('Create') : t('Save')}</button></div>
   </form>;
 
-  return <Dialog title="Manage Tags" onClose={close}>
+  return <Dialog title={t('Manage Tags')} onClose={close}>
     <section className="managetags" aria-busy={busy || loading}>
-      <div className="managetabs" role="tablist" aria-label="Manage tag categories">
+      <div className="managetabs" role="tablist" aria-label={t('Manage tag categories')}>
         {tabs.map((item, index) => <button key={item.id} role="tab" id={`${id}-${item.id}`} aria-controls={`${id}-panel`} aria-selected={tab === item.id} tabIndex={tab === item.id ? 0 : -1} disabled={busy || !!editing} onClick={() => { setTab(item.id); setError(''); }} onKeyDown={event => {
           let next: number;
           if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
@@ -96,23 +97,23 @@ export default function ManageTags({ onClose, onChanged }: { onClose: () => void
           else if (event.key === 'End') next = tabs.length - 1;
           else return;
           event.preventDefault(); setTab(tabs[next].id); document.getElementById(`${id}-${tabs[next].id}`)?.focus();
-        }}>{item.label}</button>)}
+        }}>{t(item.label)}</button>)}
       </div>
       {error && <p className="error" role="alert">{error}</p>}
       <div role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-${tab}`}>
-        <div className="managetoolbar"><button disabled={loading || busy || !!editing} onClick={() => edit('new')}>New {singular}</button><label><input type="checkbox" checked={showArchived} disabled={busy || !!editing} onChange={event => setShowArchived(event.target.checked)} />Show archived</label></div>
+        <div className="managetoolbar"><button disabled={loading || busy || !!editing} onClick={() => edit('new')}>{t(current.newLabel)}</button><label><input type="checkbox" checked={showArchived} disabled={busy || !!editing} onChange={event => setShowArchived(event.target.checked)} />{t('Show archived')}</label></div>
         {editing === 'new' && editor}
-        {loading ? <p role="status">Loading…</p> : <ul className="manageentries">{entries.map(entry => <li key={entry.id} className={entry.archived ? 'archivedentry' : ''}>
+        {loading ? <p role="status">{t('Loading…')}</p> : <ul className="manageentries">{entries.map(entry => <li key={entry.id} className={entry.archived ? 'archivedentry' : ''}>
           {editing !== 'new' && editing?.id === entry.id ? editor : <>
-            <span className="manageentryname">{entry.name}{entry.archived && <small>Archived</small>}</span>
-            <div className="manageentryactions"><button disabled={busy || !!editing} aria-label={`Edit ${entry.name}`} onClick={() => edit(entry)}>Edit</button><button disabled={busy || !!editing} aria-label={`${entry.archived ? 'Restore' : 'Archive'} ${entry.name}`} onClick={() => archive(entry)}>{entry.archived ? 'Restore' : 'Archive'}</button></div>
+            <span className="manageentryname">{entry.name}{entry.archived && <small>{t('Archived')}</small>}</span>
+            <div className="manageentryactions"><button disabled={busy || !!editing} aria-label={t('Edit {name}', { name: entry.name })} onClick={() => edit(entry)}>{t('Edit')}</button><button disabled={busy || !!editing} aria-label={t(entry.archived ? 'Restore {name}' : 'Archive {name}', { name: entry.name })} onClick={() => archive(entry)}>{entry.archived ? t('Restore') : t('Archive')}</button></div>
           </>}
         </li>)}</ul>}
-        {!loading && entries.length === 0 && <p className="manageempty">No {tabs.find(item => item.id === tab)!.label.toLowerCase()}.</p>}
-        <p className="managearchivehint">Archived items keep their existing assignments.</p>
+        {!loading && entries.length === 0 && <p className="manageempty">{t(current.empty)}</p>}
+        <p className="managearchivehint">{t('Archived items keep their existing assignments.')}</p>
       </div>
     </section>
-    <div className="dialogactions"><button className="primary" disabled={busy} onClick={close}>Done</button></div>
-    {discard && <Dialog title="Discard changes?" onClose={() => setDiscard(false)}><p>Your unsaved changes will be lost.</p><div className="dialogactions"><button onClick={() => setDiscard(false)}>Keep editing</button><button className="primary" onClick={onClose}>Discard changes</button></div></Dialog>}
+    <div className="dialogactions"><button className="primary" disabled={busy} onClick={close}>{t('Done')}</button></div>
+    {discard && <Dialog title={t('Discard changes?')} onClose={() => setDiscard(false)}><p>{t('Your unsaved changes will be lost.')}</p><div className="dialogactions"><button onClick={() => setDiscard(false)}>{t('Keep editing')}</button><button className="primary" onClick={onClose}>{t('Discard changes')}</button></div></Dialog>}
   </Dialog>;
 }

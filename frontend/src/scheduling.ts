@@ -1,6 +1,7 @@
 import type { Task } from './api';
 import type { TaskChanges } from './taskEdit';
 import { dateKey } from './calendar.ts';
+import { dateLocale, statusName, t } from './i18n.ts';
 
 export type RepeatRule = { id: string; frequency: 'daily' | 'weekly' | 'monthly' | 'yearly'; interval: number; start: string; until: string | null; due_days: number | null; paused: boolean; catch_up_through?: string | null };
 export function stateChange(status: string): TaskChanges {
@@ -31,8 +32,8 @@ export function repeatPreview(rule: RepeatRule): string[] {
   }).filter(date => !rule.until || date <= rule.until);
 }
 export function stateLabel(task: Task): string {
-  if (task.status === 'recurring') return task.recurrence?.paused ? 'Repeating · Paused' : 'Repeating';
-  if (task.status === 'scheduled' && task.defer_until) return `Scheduled: ${new Date(`${task.defer_until.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}`;
-  if (task.status === 'waiting' && task.waiting_for) return `Waiting · ${task.waiting_for}`;
-  return task.status[0].toUpperCase() + task.status.slice(1);
+  if (task.status === 'recurring') return task.recurrence?.paused ? t('Repeating · Paused') : t('Repeating');
+  if (task.status === 'scheduled' && task.defer_until) return t('Scheduled: {date}', { date: new Date(`${task.defer_until.slice(0, 10)}T12:00:00Z`).toLocaleDateString(dateLocale(), { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }) });
+  if (task.status === 'waiting' && task.waiting_for) return t('Waiting · {contact}', { contact: task.waiting_for });
+  return statusName(task.status);
 }

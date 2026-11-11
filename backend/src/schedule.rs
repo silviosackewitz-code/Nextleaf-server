@@ -268,7 +268,7 @@ pub(crate) async fn advance_server(
     let today = clock.today(now);
     sqlx::query("UPDATE tasks SET status='next',starred=1,defer_until=NULL,updated_at=? WHERE status='scheduled' AND defer_until IS NOT NULL AND substr(defer_until,1,10)<=?")
         .bind(now.to_rfc3339()).bind(today.to_string()).execute(&mut *conn).await?;
-    let templates: Vec<(String, String)> = sqlx::query_as("SELECT t.id,t.recurrence FROM tasks t LEFT JOIN projects p ON p.id=t.project_id WHERE t.status='recurring' AND t.recurrence IS NOT NULL AND (p.id IS NULL OR p.status='active') ORDER BY t.id").fetch_all(&mut *conn).await?;
+    let templates: Vec<(String, String)> = sqlx::query_as("SELECT t.id,t.recurrence FROM tasks t LEFT JOIN projects p ON p.id=t.project_id WHERE t.status='recurring' AND t.recurrence IS NOT NULL AND (p.id IS NULL OR (p.status='active' AND p.trashed=0)) ORDER BY t.id").fetch_all(&mut *conn).await?;
     let existing: std::collections::HashSet<String> =
         sqlx::query_scalar::<_, String>("SELECT id FROM tasks")
             .fetch_all(&mut *conn)

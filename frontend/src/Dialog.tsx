@@ -1,4 +1,5 @@
 import { ReactNode, useEffect, useId, useRef } from 'react';
+import { t } from './i18n.ts';
 
 export default function Dialog({ title, children, onClose, variant }: { title: string; children: ReactNode; onClose: () => void; variant?: 'editor' | 'drawer' }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -28,7 +29,7 @@ export default function Dialog({ title, children, onClose, variant }: { title: s
   }}>
     <header className="detailheader">
       <h2 id={titleId} className="eyebrow">{title}</h2>
-      <button className="iconbutton" aria-label={`Close ${title.toLowerCase()}`} onClick={onClose}>×</button>
+      <button className="iconbutton" aria-label={t('Close {name}', { name: title.toLowerCase() })} onClick={onClose}>×</button>
     </header>
     {children}
   </dialog>;

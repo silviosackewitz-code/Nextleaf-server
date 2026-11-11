@@ -1,5 +1,6 @@
 import type { Project, Tag, Task } from './api';
 import type { Grouping } from './viewOptions';
+import { statusName, t } from './i18n.ts';
 
 export type RecentCompletion = { task: Task; previousStatus: string; index: number };
 
@@ -17,12 +18,12 @@ export function withRecentCompletions(tasks: Task[], completed: Iterable<RecentC
 export function groupTasks(tasks: Task[], projects: Project[], projectId: string) {
   if (projectId) return tasks.length ? [{ id: projectId, title: null, tasks }] : [];
   const groups = new Map<string, { id: string; title: string; tasks: Task[] }>([
-    ['', { id: '', title: 'Actions', tasks: [] }],
+    ['', { id: '', title: t('Actions'), tasks: [] }],
   ]);
   for (const project of projects) groups.set(project.id, { id: project.id, title: project.name, tasks: [] });
   for (const task of tasks) {
     const id = task.project_id ?? '';
-    if (!groups.has(id)) groups.set(id, { id, title: 'Unknown project', tasks: [] });
+    if (!groups.has(id)) groups.set(id, { id, title: t('Unknown project'), tasks: [] });
     groups.get(id)!.tasks.push(task);
   }
   return [...groups.values()].filter(group => group.tasks.length);
@@ -75,21 +76,21 @@ export function taskGroups(tasks: Task[], projects: Project[], projectId: string
   if (projectId) return groupTasks(tasks, projects, projectId);
   if (grouping === 'project') return groupTasks(tasks, projects, '');
   if (grouping === 'sequential') return [
-    { id: 'actions', title: 'Actions', tasks: tasks.filter(task => !task.project_id) },
-    { id: 'project-actions', title: 'Project actions', tasks: tasks.filter(task => task.project_id) },
+    { id: 'actions', title: t('Actions'), tasks: tasks.filter(task => !task.project_id) },
+    { id: 'project-actions', title: t('Project actions'), tasks: tasks.filter(task => task.project_id) },
   ].filter(group => group.tasks.length);
   if (grouping === 'state') {
-    const labels: Record<string, string> = { inbox: 'Inbox', next: 'Next', waiting: 'Waiting', scheduled: 'Scheduled', someday: 'Someday', later: 'Later', completed: 'Completed', trash: 'Trash', recurring: 'Recurring' };
-    return Object.entries(labels).map(([id, title]) => ({ id, title, tasks: tasks.filter(task => task.status === id) })).filter(group => group.tasks.length);
+    const states = ['inbox', 'next', 'waiting', 'scheduled', 'someday', 'later', 'completed', 'trash', 'recurring'];
+    return states.map(id => ({ id, title: statusName(id), tasks: tasks.filter(task => task.status === id) })).filter(group => group.tasks.length);
   }
   if (view === 'scheduled') {
     const dates = [...new Set(tasks.filter(task => task.status !== 'recurring').map(task => task.defer_until?.slice(0, 10) ?? ''))].sort((a, b) => !a ? 1 : !b ? -1 : a.localeCompare(b));
-    const groups = dates.map(date => ({ id: `date:${date}`, title: date || 'No start date', tasks: tasks.filter(task => task.status !== 'recurring' && (task.defer_until?.slice(0, 10) ?? '') === date) }));
+    const groups = dates.map(date => ({ id: `date:${date}`, title: date || t('No start date'), tasks: tasks.filter(task => task.status !== 'recurring' && (task.defer_until?.slice(0, 10) ?? '') === date) }));
     const repeating = tasks.filter(task => task.status === 'recurring');
-    if (repeating.length) groups.push({ id: 'repeating', title: 'Repeating', tasks: repeating });
+    if (repeating.length) groups.push({ id: 'repeating', title: t('Repeating'), tasks: repeating });
     return groups;
   }
-  return tasks.length ? [{ id: 'all', title: view === 'waiting' ? 'Waiting for' : null, tasks }] : [];
+  return tasks.length ? [{ id: 'all', title: view === 'waiting' ? t('Waiting for') : null, tasks }] : [];
 }
 
 export function taskPeople(task: Task, people: string[]): string[] {

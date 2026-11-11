@@ -290,6 +290,8 @@ struct Project {
     completed_at: Option<String>,
     due_date: Option<String>,
     starred: bool,
+    /// In Trash: hidden together with its unfinished tasks until it is restored.
+    trashed: bool,
     #[sqlx(skip)]
     tags: Vec<String>,
 }
@@ -305,15 +307,25 @@ struct NewProject {
 #[serde(deny_unknown_fields)]
 struct ProjectFilter {
     area_id: Option<String>,
+    /// Set true to list only the projects in Trash. They are hidden otherwise.
+    trash: Option<bool>,
 }
 async fn list_projects(
     State(state): State<AppState>,
     Query(filter): Query<ProjectFilter>,
 ) -> ApiResult<Vec<Project>> {
+    fetch_projects(&state.pool, filter.area_id.as_ref(), Some(filter.trash.unwrap_or(false))).await
+}
+/// `trash`: Some(false) hides projects in Trash, Some(true) lists only those, None lists every project.
+async fn fetch_projects(
+    pool: &SqlitePool,
+    area_id: Option<&String>,
+    trash: Option<bool>,
+) -> ApiResult<Vec<Project>> {
     let mut rows = sqlx::query_as::<_, Project>(
-        "SELECT id,area_id,name,notes,project_type,status,sort_order,completed_at,due_date,starred FROM projects WHERE (? IS NULL OR area_id = ?) ORDER BY sort_order,name"
-    ).bind(&filter.area_id).bind(&filter.area_id).fetch_all(&state.pool).await.map_err(internal)?;
-    let links: Vec<(String, String)> = sqlx::query_as("SELECT pt.project_id,t.name FROM project_tags pt JOIN tags t ON t.id=pt.tag_id ORDER BY t.name").fetch_all(&state.pool).await.map_err(internal)?;
+        "SELECT id,area_id,name,notes,project_type,status,sort_order,completed_at,due_date,starred,trashed FROM projects WHERE (? IS NULL OR area_id = ?) AND (? IS NULL OR trashed = ?) ORDER BY sort_order,name"
+    ).bind(area_id).bind(area_id).bind(trash).bind(trash).fetch_all(pool).await.map_err(internal)?;
+    let links: Vec<(String, String)> = sqlx::query_as("SELECT pt.project_id,t.name FROM project_tags pt JOIN tags t ON t.id=pt.tag_id ORDER BY t.name").fetch_all(pool).await.map_err(internal)?;
     let mut tags: HashMap<String, Vec<String>> = HashMap::new();
     for (id, name) in links {
         tags.entry(id).or_default().push(name);
@@ -363,6 +375,7 @@ async fn create_project(
         completed_at: None,
         due_date: None,
         starred: false,
+        trashed: false,
         tags: Vec::new(),
     }))
 }
@@ -376,6 +389,8 @@ struct UpdateProject {
     project_type: Option<String>,
     status: Option<String>,
     starred: Option<bool>,
+    /// true moves the project to Trash together with its unfinished tasks; false restores it.
+    trashed: Option<bool>,
     tags: Option<Vec<String>>,
     #[serde(default, deserialize_with = "nullable")]
     area_id: Option<Option<String>>,
@@ -392,6 +407,7 @@ async fn update_project(
         && input.project_type.is_none()
         && input.status.is_none()
         && input.starred.is_none()
+        && input.trashed.is_none()
         && input.tags.is_none()
         && input.area_id.is_none()
         && input.due_date.is_none()
@@ -443,8 +459,8 @@ async fn update_project(
     if let Some(Some(area)) = &input.area_id {
         ensure_area(&mut tx, area, Some(("projects", &id))).await?;
     }
-    let result = sqlx::query("UPDATE projects SET name=COALESCE(?,name),notes=COALESCE(?,notes),project_type=COALESCE(?,project_type),starred=COALESCE(?,starred),completed_at=CASE WHEN ? IS NULL THEN completed_at WHEN ?='completed' THEN COALESCE(completed_at,?) ELSE NULL END,status=COALESCE(?,status),area_id=CASE WHEN ? THEN ? ELSE area_id END,due_date=CASE WHEN ? THEN ? ELSE due_date END,updated_at=? WHERE id=?")
-        .bind(name).bind(input.notes).bind(input.project_type).bind(input.starred)
+    let result = sqlx::query("UPDATE projects SET name=COALESCE(?,name),notes=COALESCE(?,notes),project_type=COALESCE(?,project_type),starred=COALESCE(?,starred),trashed=COALESCE(?,trashed),completed_at=CASE WHEN ? IS NULL THEN completed_at WHEN ?='completed' THEN COALESCE(completed_at,?) ELSE NULL END,status=COALESCE(?,status),area_id=CASE WHEN ? THEN ? ELSE area_id END,due_date=CASE WHEN ? THEN ? ELSE due_date END,updated_at=? WHERE id=?")
+        .bind(name).bind(input.notes).bind(input.project_type).bind(input.starred).bind(input.trashed)
         .bind(&input.status).bind(&input.status).bind(stamp()).bind(&input.status)
         .bind(input.area_id.is_some()).bind(input.area_id.flatten())
         .bind(input.due_date.is_some()).bind(input.due_date.flatten()).bind(stamp()).bind(&id)
@@ -456,7 +472,7 @@ async fn update_project(
         replace_tags(&mut tx, "project_tags", "project_id", &id, &tags).await?;
     }
     tx.commit().await.map_err(internal)?;
-    list_projects(State(state), Query(ProjectFilter { area_id: None }))
+    fetch_projects(&state.pool, None, None)
         .await?
         .0
         .into_iter()
@@ -547,6 +563,7 @@ async fn check_expected(
             "project_type",
             "status",
             "starred",
+            "trashed",
             "tags",
             "area_id",
             "due_date",
@@ -583,8 +600,10 @@ async fn check_expected(
     if expected.contains_key("archived") {
         current["archived"] = json!(current["archived"].as_i64() == Some(1));
     }
-    if expected.contains_key("starred") {
-        current["starred"] = json!(current["starred"].as_i64() == Some(1));
+    for flag in ["starred", "trashed"] {
+        if expected.contains_key(flag) {
+            current[flag] = json!(current[flag].as_i64() == Some(1));
+        }
     }
     if expected.contains_key("tags") {
         let names:Vec<String>=sqlx::query_scalar(&format!("SELECT t.name FROM {links} x JOIN tags t ON t.id=x.tag_id WHERE {owner}=? ORDER BY t.name"))
@@ -646,7 +665,7 @@ async fn ensure_area(
     Ok(())
 }
 async fn ensure_project(pool: &SqlitePool, id: &str) -> Result<(), (StatusCode, Json<Value>)> {
-    let found: Option<i64> = sqlx::query_scalar("SELECT 1 FROM projects WHERE id = ?")
+    let found: Option<i64> = sqlx::query_scalar("SELECT 1 FROM projects WHERE id = ? AND trashed = 0")
         .bind(id)
         .fetch_optional(pool)
         .await
@@ -678,6 +697,7 @@ struct TaskRow {
     energy: Option<i64>,
     project_type: Option<String>,
     project_status: Option<String>,
+    project_trashed: Option<bool>,
     project_area_id: Option<String>,
 }
 #[derive(Debug, Clone, Serialize)]
@@ -702,6 +722,8 @@ struct Task {
     tags: Vec<String>,
     available: bool,
     blocked_by_sequence: bool,
+    /// The task itself keeps its state; it is shown in Trash because its project is there.
+    project_trashed: bool,
 }
 #[derive(Debug, Default, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -795,7 +817,8 @@ fn decorate_tasks_on(rows: Vec<TaskRow>, today: chrono::NaiveDate) -> Vec<Task> 
                 .defer_until
                 .as_deref()
                 .is_some_and(|date| date.get(..10).is_some_and(|date| date > today.as_str()));
-            let project_active = task.project_status.as_deref().is_none_or(|s| s == "active");
+            let project_trashed = task.project_trashed.unwrap_or(false);
+            let project_active = !project_trashed && task.project_status.as_deref().is_none_or(|s| s == "active");
             let available = task.status == "next" && project_active && !deferred && !blocked;
             Task {
                 id: task.id,
@@ -822,6 +845,7 @@ fn decorate_tasks_on(rows: Vec<TaskRow>, today: chrono::NaiveDate) -> Vec<Task> 
                 tags: Vec::new(),
                 available,
                 blocked_by_sequence: blocked,
+                project_trashed,
             }
         })
         .collect()
@@ -831,7 +855,7 @@ async fn fetch_tasks(pool: &SqlitePool) -> Result<Vec<Task>, (StatusCode, Json<V
         .await
         .map_err(internal)?;
     let rows = sqlx::query_as::<_,TaskRow>(
-        "SELECT t.id,t.project_id,t.area_id,t.title,t.notes,t.status,t.sort_order,t.due_date,t.defer_until,t.recurrence,t.completed_at,t.created_at,t.updated_at,t.starred,t.waiting_for,t.estimated_minutes,t.energy, p.project_type,p.status AS project_status,p.area_id AS project_area_id FROM tasks t LEFT JOIN projects p ON t.project_id=p.id ORDER BY t.sort_order,t.created_at,t.id"
+        "SELECT t.id,t.project_id,t.area_id,t.title,t.notes,t.status,t.sort_order,t.due_date,t.defer_until,t.recurrence,t.completed_at,t.created_at,t.updated_at,t.starred,t.waiting_for,t.estimated_minutes,t.energy, p.project_type,p.status AS project_status,p.trashed AS project_trashed,p.area_id AS project_area_id FROM tasks t LEFT JOIN projects p ON t.project_id=p.id ORDER BY t.sort_order,t.created_at,t.id"
     ).fetch_all(pool).await.map_err(internal)?;
     let links: Vec<(String, String)> = sqlx::query_as(
         "SELECT tt.task_id,t.name FROM task_tags tt JOIN tags t ON t.id=tt.tag_id ORDER BY t.name",
@@ -850,6 +874,10 @@ async fn fetch_tasks(pool: &SqlitePool) -> Result<Vec<Task>, (StatusCode, Json<V
     Ok(tasks)
 }
 fn matches_view(task: &Task, view: &str) -> bool {
+    // Open work of a project in Trash travels with it; finished work stays in the Logbook.
+    if task.project_trashed && task.status != "completed" {
+        return view == "trash";
+    }
     match view {
         "next" => task.available,
         "all" => !matches!(task.status.as_str(), "completed" | "trash"),
@@ -1210,7 +1238,7 @@ fn configured_api_router(pool: SqlitePool, mcp_enabled: bool) -> Router {
         .route(
             "/health",
             get(move || async move {
-                Json(json!({"status":"ok","capabilities":["task-editing","item-creation","project-editing","mcp","sync","conditional-updates","tag-management","sync-v6","reviews","perspectives","mcp-permissions","scheduling","repeat-backlog-confirmation"],"mcp":{"enabled":mcp_enabled,"path":"/mcp"}}))
+                Json(json!({"status":"ok","capabilities":["task-editing","item-creation","project-editing","mcp","sync","conditional-updates","tag-management","sync-v7","project-trash","reviews","perspectives","mcp-permissions","scheduling","repeat-backlog-confirmation"],"mcp":{"enabled":mcp_enabled,"path":"/mcp"}}))
             }),
         )
         .route("/mcp/permissions", get(mcp_permissions::get).patch(mcp_permissions::save))
@@ -1344,6 +1372,7 @@ mod tests {
             energy: None,
             project_type: Some("sequential".into()),
             project_status: Some("active".into()),
+            project_trashed: Some(false),
             project_area_id: None,
         }
     }
@@ -1665,7 +1694,7 @@ mod tests {
         )
         .await
         .is_err());
-        let project = list_projects(State(state.clone()), Query(ProjectFilter { area_id: None }))
+        let project = list_projects(State(state.clone()), Query(ProjectFilter { area_id: None, trash: None }))
             .await
             .unwrap()
             .0
@@ -1833,5 +1862,80 @@ mod tests {
         tx.rollback().await.unwrap();
         pool.close().await;
         std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[tokio::test]
+    async fn project_in_trash_hides_its_open_tasks_until_it_is_restored() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::migrate!("./migrations").run(&pool).await.unwrap();
+        let state = AppState { pool: pool.clone() };
+        let add = |title: &'static str, project: Option<String>, status: &'static str| {
+            let state = state.clone();
+            async move {
+                create_task(State(state), Json(serde_json::from_value(json!({"title":title,"project_id":project,"status":status,"starred":status=="next"})).unwrap())).await.unwrap().0
+            }
+        };
+        let view = |name: &'static str| {
+            let state = state.clone();
+            async move {
+                list_tasks(State(state), Query(TaskFilter { view: Some(name.into()), ..TaskFilter::default() })).await.unwrap().0
+                    .into_iter().map(|t| t.title).collect::<Vec<_>>()
+            }
+        };
+        let project = create_project(State(state.clone()), Json(serde_json::from_value(json!({"name":"Old idea"})).unwrap())).await.unwrap().0;
+        add("Open action", Some(project.id.clone()), "next").await;
+        add("Waiting action", Some(project.id.clone()), "waiting").await;
+        let finished = add("Finished action", Some(project.id.clone()), "next").await;
+        let _ = update_task(State(state.clone()), Path(finished.id.clone()), Json(serde_json::from_value(json!({"status":"completed"})).unwrap())).await.unwrap();
+        add("Standalone", None, "next").await;
+
+        let trashed = update_project(State(state.clone()), Path(project.id.clone()), Json(serde_json::from_value(json!({"status":"someday"})).unwrap())).await.unwrap().0;
+        assert_eq!(trashed.status, "someday");
+        let _ = update_project(State(state.clone()), Path(project.id.clone()), Json(serde_json::from_value(json!({"status":"active"})).unwrap())).await.unwrap();
+        let trashed = update_project(State(state.clone()), Path(project.id.clone()), Json(serde_json::from_value(json!({"trashed":true,"expected":{"trashed":false}})).unwrap())).await.unwrap().0;
+        assert!(trashed.trashed && trashed.status == "active");
+        // A stale client that still believes the project is live gets a conflict, not a silent change.
+        assert_eq!(
+            update_project(State(state.clone()), Path(project.id.clone()), Json(serde_json::from_value(json!({"name":"Renamed","expected":{"trashed":false}})).unwrap())).await.unwrap_err().0,
+            StatusCode::CONFLICT
+        );
+        assert!(list_projects(State(state.clone()), Query(ProjectFilter { area_id: None, trash: None })).await.unwrap().0.is_empty());
+        let in_trash = list_projects(State(state.clone()), Query(ProjectFilter { area_id: None, trash: Some(true) })).await.unwrap().0;
+        assert_eq!(in_trash.iter().map(|p| p.name.as_str()).collect::<Vec<_>>(), vec!["Old idea"]);
+        assert_eq!(view("next").await, vec!["Standalone"]);
+        assert_eq!(view("all").await, vec!["Standalone"]);
+        assert_eq!(view("focus").await, vec!["Standalone"]);
+        assert!(view("waiting").await.is_empty());
+        assert_eq!(view("trash").await, vec!["Open action", "Waiting action"]);
+        assert_eq!(view("completed").await, vec!["Finished action"]);
+        // The tasks keep their own state, so restoring the project restores them exactly.
+        let rows = fetch_tasks(&pool).await.unwrap();
+        let waiting = rows.iter().find(|t| t.title == "Waiting action").unwrap();
+        assert!(waiting.project_trashed && waiting.status == "waiting" && !waiting.available);
+        assert!(!rows.iter().find(|t| t.title == "Standalone").unwrap().project_trashed);
+        // Nothing new can be filed under a project in Trash.
+        assert_eq!(
+            create_task(State(state.clone()), Json(serde_json::from_value(json!({"title":"Late","project_id":project.id})).unwrap())).await.unwrap_err().0,
+            StatusCode::BAD_REQUEST
+        );
+        // A project in Trash is not waiting for review.
+        let due = |state: AppState| async move { serde_json::to_string(&reviews::list(State(state)).await.unwrap().0).unwrap() };
+        assert!(!due(state.clone()).await.contains(&project.id));
+
+        let restored = update_project(State(state.clone()), Path(project.id.clone()), Json(serde_json::from_value(json!({"trashed":false})).unwrap())).await.unwrap().0;
+        assert!(!restored.trashed && restored.status == "active");
+        assert_eq!(view("next").await, vec!["Open action", "Standalone"]);
+        assert_eq!(view("waiting").await, vec!["Waiting action"]);
+        assert!(view("trash").await.is_empty());
+        assert_eq!(list_projects(State(state.clone()), Query(ProjectFilter { area_id: None, trash: None })).await.unwrap().0.len(), 1);
+        assert!(due(state.clone()).await.contains(&project.id));
+        assert_eq!(
+            update_project(State(state), Path(project.id), Json(serde_json::from_value(json!({"status":"trash"})).unwrap())).await.unwrap_err().0,
+            StatusCode::BAD_REQUEST
+        );
     }
 }

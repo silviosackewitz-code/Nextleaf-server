@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { projectChanges, projectRows, projectExpected } from '../src/projectEdit.ts';
 import type { Project, Task } from '../src/api.ts';
-const project: Project = { id: 'p', name: 'Project', notes: 'Keep', area_id: 'a', project_type: 'parallel', status: 'active', completed_at: null, sort_order: 100, due_date: null, starred: false, tags: ['Work'] };
+const project: Project = { id: 'p', name: 'Project', notes: 'Keep', area_id: 'a', project_type: 'parallel', status: 'active', completed_at: null, sort_order: 100, due_date: null, starred: false, trashed: false, tags: ['Work'] };
 test('project edits send only changed fields, including clears', () => {
   assert.deepEqual(projectChanges(project, { ...project, area_id: null, project_type: 'sequential', tags: [] }), { area_id: null, project_type: 'sequential', tags: [] });
   assert.deepEqual(projectChanges(project, { ...project }), {});
@@ -19,4 +19,10 @@ test('overview includes empty projects, counts unfinished actions, and filters p
 test('project editor sends original values only for changed fields', () => {
   const changes = projectChanges(project, { ...project, project_type: 'sequential', tags: [], due_date: '2026-11-01' });
   assert.deepEqual(projectExpected(project, changes), { project_type: 'parallel', due_date: null, tags: ['Work'] });
+});
+test('moving to Trash and restoring are conditional on the state the owner saw', () => {
+  assert.deepEqual(projectExpected(project, { trashed: true }), { trashed: false });
+  assert.deepEqual(projectExpected({ ...project, trashed: true }, { trashed: false }), { trashed: true });
+  // The editor never produces `trashed`, so saving other fields cannot restore or delete a project.
+  assert.deepEqual(projectChanges(project, { ...project, trashed: true }), {});
 });

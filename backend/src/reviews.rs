@@ -92,7 +92,7 @@ async fn target(conn: &mut SqliteConnection, id: &str) -> ApiResult<()> {
         return Err(bad_request("Unknown review target; Inbox has no schedule"));
     }
     if let Some(project) = id.strip_prefix("project:") {
-        let status: Option<String> = sqlx::query_scalar("SELECT status FROM projects WHERE id=?")
+        let status: Option<String> = sqlx::query_scalar("SELECT CASE WHEN trashed THEN 'trash' ELSE status END FROM projects WHERE id=?")
             .bind(project)
             .fetch_optional(conn)
             .await
@@ -100,6 +100,7 @@ async fn target(conn: &mut SqliteConnection, id: &str) -> ApiResult<()> {
         match status.as_deref() {
             None => return Err(not_found()),
             Some("completed") => return Err(bad_request("Completed projects do not need review")),
+            Some("trash") => return Err(bad_request("Projects in Trash cannot be reviewed")),
             _ => (),
         }
     }
@@ -171,7 +172,7 @@ fn contains(id: &str, task: &Task) -> bool {
 pub(super) async fn list(State(state): State<AppState>) -> ApiResult<Overview> {
     let day = today(&mut *state.pool.acquire().await.map_err(internal)?).await?;
     let tasks = fetch_tasks(&state.pool).await?;
-    let projects = list_projects(State(state.clone()), Query(ProjectFilter { area_id: None }))
+    let projects = list_projects(State(state.clone()), Query(ProjectFilter { area_id: None, trash: None }))
         .await?
         .0;
     let rows: Vec<Record> = sqlx::query_as("SELECT id,data_json,revision,undo_json FROM reviews")

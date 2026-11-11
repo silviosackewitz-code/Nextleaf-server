@@ -18,6 +18,7 @@ pub(super) const PERMISSIONS: &[(&str, &str, &str)] = &[
     ("reviews.confirm", "Confirm and undo reviews when instructed", "Review"),
     ("projects.create", "Create projects", "Projects"),
     ("projects.edit", "Edit and complete projects", "Projects"),
+    ("projects.trash", "Move projects to Trash", "Projects"),
     (
         "tags.create",
         "Create tags and contacts",
@@ -184,6 +185,9 @@ pub(super) async fn authorize(pool: &SqlitePool, name: &str, args: &Value) -> Ap
     {
         need("tasks.create")?;
     }
+    if name == "update_project" && changes["trashed"] == true {
+        need("projects.trash")?;
+    }
     if name == "update_tag" && changes.get("archived").is_some_and(|v| !v.is_null()) {
         need("tags.archive")?;
     }
@@ -195,7 +199,8 @@ pub(super) async fn authorize(pool: &SqlitePool, name: &str, args: &Value) -> Ap
     }
     if name == "import_nirvana" {
         for (key, _, _) in PERMISSIONS {
-            if *key != "read" && !key.starts_with("reviews.") {
+            // Rights added after the import was introduced are not needed by it.
+            if *key != "read" && !key.starts_with("reviews.") && *key != "projects.trash" {
                 need(key)?;
             }
         }

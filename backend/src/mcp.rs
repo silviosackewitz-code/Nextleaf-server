@@ -252,7 +252,7 @@ impl NextleafMcp {
     }
 
     #[tool(
-        description = "List projects with notes, area, mode, status, focus, due date and tags; optionally filter by area_id. Includes empty and completed projects.",
+        description = "List projects with notes, area, mode, status, focus, due date and tags; optionally filter by area_id. Includes empty and completed projects. Projects in Trash are hidden; pass trash=true to list only those.",
         annotations(read_only_hint = true, open_world_hint = false)
     )]
     async fn list_projects(&self, Parameters(filter): Parameters<ProjectFilter>) -> CallToolResult {
@@ -268,7 +268,7 @@ impl NextleafMcp {
     }
 
     #[tool(
-        description = "Edit project name, notes, area_id, tags (complete replacement), starred (Focus), due_date (YYYY-MM-DD), project_type (parallel/sequential), status (active/someday/completed). Completion does not complete child tasks. Null clears optional fields; omitted fields stay unchanged.",
+        description = "Edit project name, notes, area_id, tags (complete replacement), starred (Focus), due_date (YYYY-MM-DD), project_type (parallel/sequential), status (active/someday/completed), trashed (true/false). Completion does not complete child tasks. trashed=true moves the project to Trash together with its unfinished tasks and needs its own permission; trashed=false restores it with its status and tasks unchanged. There is no permanent deletion. Null clears optional fields; omitted fields stay unchanged.",
         annotations(open_world_hint = false)
     )]
     async fn update_project(&self, Parameters(input): Parameters<ProjectChange>) -> CallToolResult {
@@ -1275,6 +1275,13 @@ mod tests {
             "update_perspective",
             json!({"id":view["id"],"changes":{"deleted":true}}),
             "perspectives.delete",
+        )
+        .await;
+        deny(
+            &app,
+            "update_project",
+            json!({"id":project["id"],"changes":{"trashed":true}}),
+            "projects.trash",
         )
         .await;
         deny(&app, "import_nirvana", json!({}), "tasks.trash").await;
