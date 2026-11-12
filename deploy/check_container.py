@@ -50,9 +50,13 @@ with tempfile.TemporaryDirectory(prefix='nextleaf-container-check-') as temporar
         base = 'http://' + compose('port', 'nextleaf', '8787', capture=True).stdout.strip()
         health = request('/api/health')
         assert health['status'] == 'ok'
-        assert {'tag-management', 'sync-v4', 'scheduling'} <= set(health['capabilities'])
+        capabilities = set(health['capabilities'])
+        assert {'tag-management', 'scheduling'} <= capabilities
+        # The sync version is not repeated here: health and the snapshot must name the same one.
+        sync_versions = [name[len('sync-v'):] for name in capabilities if name.startswith('sync-v')]
+        assert len(sync_versions) == 1 and sync_versions[0].isdigit(), sync_versions
         initial = request('/api/sync')
-        assert initial['snapshot']['protocol'] == 4
+        assert initial['snapshot']['protocol'] == int(sync_versions[0])
         if upgraded:
             assert initial['server_id'] == upgraded['server_id']
             for table in ['tasks', 'projects', 'areas', 'tags']:

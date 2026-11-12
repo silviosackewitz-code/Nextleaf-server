@@ -5,7 +5,7 @@ on the target architecture. ARM64 and AMD64 are the release workflow targets.
 Keep the service behind a trusted private network such as Tailscale.
 
 ```sh
-docker build -t nextleaf-server:0.1.5-local .
+docker build -t nextleaf-server:0.4.0-local .
 sudo install -d -m 0750 /opt/nextleaf-app
 sudo install -d -o 10001 -g 10001 -m 0700 /srv/nextleaf
 sudo install -m 0644 deploy/release/docker-compose.yml /opt/nextleaf-app/docker-compose.yml

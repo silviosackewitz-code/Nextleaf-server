@@ -1,15 +1,17 @@
+import { de } from './locales/de.ts';
 import { esMX } from './locales/es-MX.ts';
 
 // English source text is the translation key. A missing translation falls back to
 // English, so new text never breaks the interface.
-export type Locale = 'en' | 'es-MX';
+export type Locale = 'en' | 'es-MX' | 'de';
 
-const catalogs: Record<Exclude<Locale, 'en'>, Record<string, string>> = { 'es-MX': esMX };
+const catalogs: Record<Exclude<Locale, 'en'>, Record<string, string>> = { 'es-MX': esMX, de };
 
 export function detectLocale(languages: readonly string[] | undefined): Locale {
   for (const language of languages ?? []) {
     const tag = language.toLowerCase();
     if (tag.startsWith('es')) return 'es-MX';
+    if (tag.startsWith('de')) return 'de';
     if (tag.startsWith('en')) return 'en';
   }
   return 'en';
@@ -26,7 +28,10 @@ export function locale(): Locale { return current; }
 export function setLocale(next: Locale) { current = next; }
 
 /** BCP 47 tag for Intl and toLocale* date formatting. */
-export function dateLocale(): string { return current === 'es-MX' ? 'es-MX' : 'en-US'; }
+export function dateLocale(): string { return current === 'es-MX' ? 'es-MX' : current === 'de' ? 'de-DE' : 'en-US'; }
+
+/** First day of the calendar week: 0 for Sunday (United States, Mexico), 1 for Monday (Germany). */
+export function weekStart(): 0 | 1 { return current === 'de' ? 1 : 0; }
 
 export function translate(target: Locale, source: string, vars?: Record<string, string | number>): string {
   const text = target === 'en' ? source : catalogs[target][source] ?? source;

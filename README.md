@@ -30,7 +30,7 @@ Open http://127.0.0.1:8787. For frontend development, run
 
 ## Deploy
 
-Build locally on the server with `docker build -t nextleaf-server:0.1.5-local .`.
+Build locally on the server with `docker build -t nextleaf-server:0.4.0-local .`.
 See [installation and backup](docs/DEPLOYMENT.md) for Compose, private HTTPS,
 upgrades and recovery. The initial source split does not imply that prebuilt
 images or download releases exist; build from source until a tested release is published.
@@ -41,8 +41,13 @@ Tailscale is separate software, not part of Nextleaf's synchronization engine.
 Never expose the app listener with Funnel or a public reverse proxy.
 
 Optional agent access uses the separate authenticated MCP endpoint. See
-[MCP](docs/MCP.md). Sync protocol 6 includes Perspectives and Review; incompatible
-clients are rejected before writing. Keep client and server versions compatible.
+[MCP](docs/MCP.md). Sync covers tasks, projects including those in Trash, areas,
+tags, Perspectives and Review. Its protocol is versioned: `GET /api/health` lists
+the server's version as `sync-vN`, and an incompatible client is rejected before
+anything is written. Keep client and server versions compatible.
+
+To let an AI assistant set up a server, see [docs/AGENT_SETUP.md](docs/AGENT_SETUP.md);
+the short guide for users is [docs/SYNC_SETUP.md](docs/SYNC_SETUP.md).
 
 ## Development
 

@@ -51,7 +51,10 @@ try:
     assert initialized['serverInfo']['name'] == 'nextleaf', 'Unexpected server'
     tools = {tool['name'] for tool in rpc('tools/list', {})['tools']}
     expected = {'list_areas', 'create_area', 'list_tags', 'create_tag', 'update_tag', 'update_area', 'list_projects', 'create_project', 'update_project', 'list_tasks', 'get_task', 'create_task', 'update_task'}
-    assert expected <= tools <= expected | {'import_nirvana'}, 'Unexpected tool coverage'
+    # Tools added after the first release. Keep both sets equal to the list pinned by the
+    # tool test in backend/src/mcp.rs.
+    optional = {'import_nirvana', 'list_perspectives', 'perspective_tasks', 'preview_perspective', 'create_perspective', 'update_perspective', 'preview_repeat', 'list_reviews', 'review_tasks'}
+    assert expected <= tools <= expected | optional, 'Unexpected tool coverage'
     result = rpc('tools/call', {'name': 'list_areas', 'arguments': {}})
     assert not result.get('isError'), 'Read-only tool failed'
     assert isinstance(json.loads(result['content'][0]['text']), list)

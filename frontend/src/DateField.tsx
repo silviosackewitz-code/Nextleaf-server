@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { calendarDays, dateKey } from './calendar';
-import { dateLocale, t } from './i18n.ts';
+import { calendarDays, dateKey, weekdayKeys } from './calendar';
+import { dateLocale, t, weekStart } from './i18n.ts';
 
 export default function DateField({ label, value, disabled, onChange, initialAnchor, onClose }: {
   initialAnchor?: { right: number; bottom: number }; onClose?: () => void;
@@ -39,8 +39,8 @@ export default function DateField({ label, value, disabled, onChange, initialAnc
     {open && createPortal(<dialog ref={dialog} className="calendar" aria-labelledby={heading} onCancel={event => { event.preventDefault(); if (!pending) close(); }} onKeyDown={event => event.stopPropagation()}>
       <h2 id={heading}>{label === t('Due') ? t('Due Date') : label}</h2>
       <div className="calendarmonth"><button type="button" aria-label={t('Previous month')} disabled={pending} onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1, 12))}>‹</button><span aria-live="polite">{month.toLocaleDateString(dateLocale(), { month: 'long', year: 'numeric' })}</span><button type="button" aria-label={t('Next month')} disabled={pending} onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1, 12))}>›</button></div>
-      <div className="calendarweek" aria-hidden="true">{['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => <span key={day}>{t(day)}</span>)}</div>
-      <div className="calendardays">{calendarDays(month.getFullYear(), month.getMonth()).map(date => {
+      <div className="calendarweek" aria-hidden="true">{weekdayKeys(weekStart()).map(day => <span key={day}>{t(day)}</span>)}</div>
+      <div className="calendardays">{calendarDays(month.getFullYear(), month.getMonth(), weekStart()).map(date => {
         const key = dateKey(date);
         return <button type="button" key={key} className={date.getMonth() !== month.getMonth() ? 'othermonth' : ''} aria-label={key} aria-pressed={key === value?.slice(0, 10)} data-today={key === dateKey(new Date())} disabled={pending || disabled} onClick={() => void choose(key)}>{date.getDate()}</button>;
       })}</div>
